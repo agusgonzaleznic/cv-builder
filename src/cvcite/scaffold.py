@@ -3,6 +3,7 @@ and a private GitHub repository is left to the person (the commands are printed 
 
 from __future__ import annotations
 
+import re
 import shutil
 import subprocess
 from pathlib import Path
@@ -61,6 +62,10 @@ def init(target: Path, sample: bool = False, force: bool = False) -> int:
     workflows = target / ".github" / "workflows"
     workflows.mkdir(parents=True, exist_ok=True)
     ref = action_ref()
+    if not re.search(r"@[0-9a-f]{40}( |$)", ref):
+        print(f"WARNING: the workflows use {ref.split(' #')[0]}, which is not pinned to a commit "
+              "(no release, or no network). Run cvcite init again online, or replace it with the "
+              "release's full commit SHA before you rely on the workflows.")
     for src in sorted((repo / "github" / "workflows").glob("*.yml")):
         text = src.read_text(encoding="utf-8").replace("{{ACTION_REF}}", ref)
         (workflows / src.name).write_text(text, encoding="utf-8")

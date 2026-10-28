@@ -29,7 +29,9 @@ in the intro card, "Save to PDF") works only for English profiles and lists few 
 
 ## 1. Gather
 
-- **LinkedIn:** `cvcite ingest <export.zip> --out inputs/extracted` gives the profile,
+- **LinkedIn:** ask the person to put the export in `inputs/` (git ignores it). Fetch nothing
+  but the pages they named and the GitHub URLs below, and never put CV content or facts into a
+  URL or a request. `cvcite ingest inputs/<export.zip> --out inputs/extracted` gives the profile,
   positions, education, skills, certifications and languages as JSON (private fields dropped).
   `cvcite compare --linkedin <export.zip>` lists every role whose title or dates differ, and
   roles that exist on only one side. A profile PDF gives the visible text when there is no export.

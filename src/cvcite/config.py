@@ -3,6 +3,7 @@ a missing file means the defaults."""
 
 from __future__ import annotations
 
+import math
 import re
 import tomllib
 from dataclasses import dataclass, field, fields
@@ -96,8 +97,18 @@ def load(root: Path) -> Config:
     if market not in MARKETS:
         raise ValueError(f"{CONFIG_NAME}: market '{market}' is not one of {sorted(MARKETS)}")
     cfg.market = market
-    if not isinstance(cfg.pages, int) or cfg.pages < 1:
+    if not isinstance(cfg.pages, int) or isinstance(cfg.pages, bool) or cfg.pages < 1:
         raise ValueError(f"{CONFIG_NAME}: pages must be a whole number of at least 1")
-    if "/" in cfg.send_name or not cfg.send_name.lower().endswith(".pdf"):
+    name = cfg.send_name
+    if (not isinstance(name, str) or "/" in name or "\\" in name or name.startswith(("-", "."))
+            or not name.lower().endswith(".pdf")):
         raise ValueError(f"{CONFIG_NAME}: send_name must be a plain file name ending in .pdf")
+    for key in ("master", "variants", "facts", "build_dir"):
+        value = getattr(cfg, key)
+        rel = Path(str(value))
+        if not isinstance(value, str) or not value or rel.is_absolute() or ".." in rel.parts:
+            raise ValueError(f"{CONFIG_NAME}: {key} must be a path inside the repository")
+    if not (isinstance(cfg.min_contrast, float) and math.isfinite(cfg.min_contrast)
+            and 1.0 <= cfg.min_contrast <= 21.0):
+        raise ValueError(f"{CONFIG_NAME}: min_contrast must be a number from 1 to 21")
     return cfg

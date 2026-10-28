@@ -10,10 +10,17 @@ from . import __version__, checks, config, gate, overlay
 
 
 def load_facts(cfg: config.Config) -> list[dict] | None:
+    """The fact ledger: facts.yaml, plus facts.private.yaml when it exists. The private file is
+    git-ignored, so facts kept there are never committed, pushed or sent to a CI reviewer."""
     if not cfg.facts_path.exists():
         return None
-    data = overlay.load_yaml(cfg.facts_path) or {}
-    return [dict(f) for f in (data.get("facts") or []) if isinstance(f, dict)]
+    facts = []
+    private_file = cfg.facts_path.with_name(cfg.facts_path.stem + ".private.yaml")
+    for path in (cfg.facts_path, private_file):
+        if path.exists():
+            data = overlay.load_yaml(path) or {}
+            facts += [dict(f) for f in (data.get("facts") or []) if isinstance(f, dict)]
+    return facts
 
 
 def variants_or_fail(cfg: config.Config, wanted: list[str]) -> list[Path]:

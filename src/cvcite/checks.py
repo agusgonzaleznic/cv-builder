@@ -189,21 +189,44 @@ def numbers(text: str) -> set[str]:
     return {re.sub(r"\s+", "", m).rstrip(".,") for m in NUMBER_RE.findall(text)}
 
 
+VISIBILITIES = ("public", "cv-only", "private")
+
+
+def check_ledger(facts: list[dict] | None) -> list[Issue]:
+    """The ledger itself: every fact names a known visibility. A misspelt one ("Private",
+    "privat") must not quietly turn a private fact into a public one."""
+    issues = []
+    for i, fact in enumerate(facts or []):
+        value = fact.get("visibility")
+        if value not in VISIBILITIES:
+            issues.append(Issue("error", f"facts[{i}] ({fact.get('id', '?')})",
+                                f"visibility is {value!r}: it must be one of "
+                                f"{', '.join(VISIBILITIES)}"))
+        terms = fact.get("terms", [])
+        if not isinstance(terms, list) or not all(isinstance(t, str) for t in terms):
+            issues.append(Issue("error", f"facts[{i}] ({fact.get('id', '?')})",
+                                "terms must be a list of strings"))
+    return issues
+
+
 def check_numbers_in_ledger(cv: dict, facts: list[dict] | None) -> list[Issue]:
     """Every number in a bullet or summary must appear in a fact of the ledger. A figure no fact
-    holds was estimated, inferred or remembered, which is how CVs end up overclaiming. A number
-    that only a `visibility: private` fact holds must not reach the CV at all."""
+    holds was estimated, inferred or remembered, which is how CVs end up overclaiming. Nothing
+    from a `visibility: private` fact may reach the CV: neither a number only it holds, nor any
+    of the identifying `terms` it lists (a customer under NDA, an internal project name)."""
     if facts is None:
         return [Issue("warning", "facts.yaml", "no fact ledger: numbers in bullets go unchecked")]
+    issues = check_ledger(facts)
     shareable: set[str] = set()
     private: set[str] = set()
+    private_terms: set[str] = set()
     for fact in facts:
         found = numbers(str(fact.get("text", "")))
-        if str(fact.get("visibility", "public")) == "private":
-            private |= found
-        else:
+        if fact.get("visibility") == "public" or fact.get("visibility") == "cv-only":
             shareable |= found
-    issues = []
+        else:  # private, or a visibility check_ledger already rejected: fail closed
+            private |= found
+            private_terms |= {t for t in fact.get("terms") or [] if isinstance(t, str) and t}
     for where, text in prose(cv):
         for number in sorted(numbers(text) - shareable):
             if re.fullmatch(r"(19|20)\d\d", number):
@@ -214,6 +237,11 @@ def check_numbers_in_ledger(cv: dict, facts: list[dict] | None) -> list[Issue]:
             else:
                 issues.append(Issue("error", where, f"'{number}' is in no fact of the ledger: "
                                     "add the fact with its source first, or take the number out"))
+    for where, text in strings(cv):
+        for term in sorted(private_terms):
+            if term.lower() in text.lower():
+                issues.append(Issue("error", where, f"'{term}' is a term of a private fact and "
+                                    "must not be on the CV"))
     return issues
 
 
@@ -232,7 +260,7 @@ PRIVATE_FIELDS = {
 # text ("built the passport scanning service") only warn: they may describe the work.
 PRIVATE_LABELS = {
     "a date of birth": [
-        "date of birth", "birth date", "birthdate", "born on", "geburtsdatum",
+        "date of birth", "birth date", "birthdate", "born on", "dob", "place of birth", "geburtsdatum",
         "fecha de nacimiento", "date de naissance", "data di nascita", "data de nascimento",
         "geboortedatum", "data urodzenia"],
     "a marital status": [
@@ -287,6 +315,35 @@ def check_privacy(cv: dict, market: str = "international") -> list[Issue]:
         issues.append(Issue("error", "cv.location",
                             "looks like a street address or postcode: give the city and "
                             "country only"))
+    for where, text in strings(cv):
+        if where != "cv.location" and STREET_RE.search(text):
+            issues.append(Issue("warning", where, "looks like a street address: fine for an "
+                                "employer's office only if you mean it, never your own"))
+    return issues
+
+
+# RenderCV 2.8's built-in themes. A theme name that is not one of them makes RenderCV import a
+# folder of that name next to the YAML and run its __init__.py: code from the repository.
+BUILT_IN_THEMES = {"classic", "ember", "engineeringclassic", "engineeringresumes", "harvard",
+                   "ink", "moderncv", "opal", "sb2nov"}
+
+
+def check_render_settings(merged: dict) -> list[Issue]:
+    """Settings that would make a render run code from the repository or move its files: a custom
+    theme, RenderCV's own render command (output paths) and rendercv_settings. cvcite sets the
+    paths itself."""
+    issues = []
+    theme = str((merged.get("design") or {}).get("theme", "classic"))
+    if theme not in BUILT_IN_THEMES:
+        issues.append(Issue("error", "design.theme", f"'{theme}' is not a built-in RenderCV "
+                            f"theme ({', '.join(sorted(BUILT_IN_THEMES))}): custom themes run "
+                            "code from the repository, so cvcite does not render them"))
+    if "rendercv_settings" in merged:
+        issues.append(Issue("error", "rendercv_settings", "rendercv_settings is not "
+                            "supported: cvcite sets the render paths itself"))
+    if "render_command" in (merged.get("settings") or {}):
+        issues.append(Issue("error", "settings.render_command", "settings.render_command is "
+                            "not supported: cvcite sets the render paths itself"))
     return issues
 
 
@@ -294,6 +351,7 @@ def run_all(merged: dict, *, banned: tuple[str, ...], facts: list[dict] | None,
             market: str, skills: str = "Skills",
             today: dt.date | None = None) -> list[Issue]:
     cv = merged.get("cv") or {}
-    return (check_dates(cv, today) + check_text(cv, merged.get("settings"), banned)
+    return (check_render_settings(merged)
+            + check_dates(cv, today) + check_text(cv, merged.get("settings"), banned)
             + check_skills_backed(cv, skills) + check_numbers_in_ledger(cv, facts)
             + check_privacy(cv, market))

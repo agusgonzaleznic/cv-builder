@@ -10,4 +10,9 @@
 #   visibility:  public   fine on the CV and on public profiles
 #                cv-only  fine on the CV you send, kept off public profiles
 #                private  never on the CV or any profile
+#   terms:       for a private fact, the words that identify it (a customer under NDA, an
+#                internal project); `cvcite check` fails a CV that contains any of them
+#
+# Keep private facts in facts.private.yaml, in the same format: git ignores it, so they are never
+# committed, pushed or sent to the AI review, and `cvcite check` still reads them here.
 facts: []

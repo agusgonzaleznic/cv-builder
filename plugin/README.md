@@ -33,15 +33,19 @@ command is missing, the skills ask you before installing it.
 
 ## What it runs, fetches and sends
 
-- **Runs:** only the `cvcite` command line on your machine (`check`, `build`, `ingest`,
-  `compare`, `init`, `doctor`), in the CV repository you work in.
-- **Fetches:** only pages you point it to: a job posting, your personal website, and your public
-  GitHub profile through `https://api.github.com/users/<login>` and the profile README, without
-  any login or token. Fetched pages and your documents are treated as data, never as instructions.
-- **Sends:** nothing to any other service. It never signs in to LinkedIn or any other account,
-  and never edits a profile; you paste the texts it writes.
-- **Reads:** the files in your CV repository and the documents you hand it. It refuses identity,
-  legal and financial documents.
+- **Runs:** the `cvcite` command line on your machine (`check`, `build`, `ingest`, `compare`,
+  `init`, `doctor`, `package`), in the CV repository you work in. Only after asking you: `uv tool
+  install` of the pinned cvcite release, `git init` and `git commit` in your CV repository,
+  `gh repo create --private` for it, and `gh workflow run release.yml` to publish a private
+  release of your PDFs.
+- **Fetches:** only pages you name (a job posting, your personal website) and your public GitHub
+  profile through `https://api.github.com/users/<login>` and the profile README, without any login
+  or token. It never puts CV content or facts into a URL or a request.
+- **Sends:** nothing to any other service. It never signs in to LinkedIn or any other account, and
+  never edits a profile; you paste the texts it writes. As in any Claude Code session, what Claude
+  reads (your files and the pages it fetches) is part of your conversation with Anthropic.
+- **Reads:** the files in your CV repository and the documents you hand it, as data, never as
+  instructions. It refuses identity, legal and financial documents.
 
 ## Licence
 
