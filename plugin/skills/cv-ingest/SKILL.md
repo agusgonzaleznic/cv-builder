@@ -14,9 +14,10 @@ confirmed, and never fill a gap with an estimate.
 1. Find the CV repository: a folder with `cvcite.toml` and `AGENTS.md`. If there is none, ask
    whether to create one, and where. Create it with `cvcite init <folder>`, then offer the
    private GitHub repository commands it prints (never make it public).
-2. Run `cvcite doctor`. If the command is missing, ask before installing it:
-   `uv tool install git+https://github.com/agusgonzaleznic/cvcite` (or `pipx install` with
-   the same URL).
+2. Run `cvcite doctor`. If the command is missing, ask before installing it, pinned to the
+   release this plugin belongs to:
+   `uv tool install git+https://github.com/agusgonzaleznic/cvcite@v0.2.0` (or `pipx install`
+   with the same URL). Never install a package called cvcite from anywhere else.
 3. Read the repository's `AGENTS.md`. Its truth rules bind everything below.
 4. Ask questions with the AskUserQuestion tool when you have it: one decision per question, two
    to four options, your recommendation first and marked "(Recommended)". Without that tool, ask
@@ -64,7 +65,9 @@ Cover, in this order:
 - **Certifications:** passed (with the year) or in progress. Never write an exam in progress as
   held.
 - **Visibility:** ask which facts must stay off public profiles (`cv-only`) and which must never
-  appear anywhere (`private`), such as internal revenue or customer names under NDA.
+  appear anywhere (`private`), such as internal revenue or customer names under NDA. Write
+  private facts to `facts.private.yaml` (git ignores it), each with the `terms` that identify
+  it, so `cvcite check` can stop them reaching the CV.
 
 Write each confirmed fact to `facts.yaml` as you go: `id`, `text` (with numbers exactly as the CV
 will show them), `source`, `confirmed` (today), `visibility`. Show the person what you wrote for

@@ -136,6 +136,9 @@ def check_dates(cv: dict, today: dt.date | None = None) -> list[Issue]:
 def check_text(cv: dict, settings: dict | None, banned: tuple[str, ...]) -> list[Issue]:
     issues: list[Issue] = []
     for where, text in strings(cv):
+        if re.search(r"#[A-Za-z_][\w-]{0,40}\s{0,3}[(\[]", text[:2000]):
+            issues.append(Issue("error", where, "holds Typst code (#name( or #name[): RenderCV "
+                                "would run it, and it can read files into the PDF"))
         if "TODO" in text:
             issues.append(Issue("error", where, "still holds a TODO: fill it in from the fact "
                                 "ledger, or take it out"))
@@ -189,21 +192,44 @@ def numbers(text: str) -> set[str]:
     return {re.sub(r"\s+", "", m).rstrip(".,") for m in NUMBER_RE.findall(text)}
 
 
+VISIBILITIES = ("public", "cv-only", "private")
+
+
+def check_ledger(facts: list[dict] | None) -> list[Issue]:
+    """The ledger itself: every fact names a known visibility. A misspelt one ("Private",
+    "privat") must not quietly turn a private fact into a public one."""
+    issues = []
+    for i, fact in enumerate(facts or []):
+        value = fact.get("visibility")
+        if value not in VISIBILITIES:
+            issues.append(Issue("error", f"facts[{i}] ({fact.get('id', '?')})",
+                                f"visibility is {value!r}: it must be one of "
+                                f"{', '.join(VISIBILITIES)}"))
+        terms = fact.get("terms", [])
+        if not isinstance(terms, list) or not all(isinstance(t, str) for t in terms):
+            issues.append(Issue("error", f"facts[{i}] ({fact.get('id', '?')})",
+                                "terms must be a list of strings"))
+    return issues
+
+
 def check_numbers_in_ledger(cv: dict, facts: list[dict] | None) -> list[Issue]:
     """Every number in a bullet or summary must appear in a fact of the ledger. A figure no fact
-    holds was estimated, inferred or remembered, which is how CVs end up overclaiming. A number
-    that only a `visibility: private` fact holds must not reach the CV at all."""
+    holds was estimated, inferred or remembered, which is how CVs end up overclaiming. Nothing
+    from a `visibility: private` fact may reach the CV: neither a number only it holds, nor any
+    of the identifying `terms` it lists (a customer under NDA, an internal project name)."""
     if facts is None:
         return [Issue("warning", "facts.yaml", "no fact ledger: numbers in bullets go unchecked")]
+    issues = check_ledger(facts)
     shareable: set[str] = set()
     private: set[str] = set()
+    private_terms: set[str] = set()
     for fact in facts:
         found = numbers(str(fact.get("text", "")))
-        if str(fact.get("visibility", "public")) == "private":
-            private |= found
-        else:
+        if fact.get("visibility") == "public" or fact.get("visibility") == "cv-only":
             shareable |= found
-    issues = []
+        else:  # private, or a visibility check_ledger already rejected: fail closed
+            private |= found
+            private_terms |= {t for t in fact.get("terms") or [] if isinstance(t, str) and t}
     for where, text in prose(cv):
         for number in sorted(numbers(text) - shareable):
             if re.fullmatch(r"(19|20)\d\d", number):
@@ -214,6 +240,11 @@ def check_numbers_in_ledger(cv: dict, facts: list[dict] | None) -> list[Issue]:
             else:
                 issues.append(Issue("error", where, f"'{number}' is in no fact of the ledger: "
                                     "add the fact with its source first, or take the number out"))
+    for where, text in strings(cv):
+        for term in sorted(private_terms):
+            if term.lower() in text.lower():
+                issues.append(Issue("error", where, f"'{term}' is a term of a private fact and "
+                                    "must not be on the CV"))
     return issues
 
 
@@ -232,19 +263,26 @@ PRIVATE_FIELDS = {
 # text ("built the passport scanning service") only warn: they may describe the work.
 PRIVATE_LABELS = {
     "a date of birth": [
-        "date of birth", "birth date", "birthdate", "born on", "geburtsdatum",
+        "date of birth", "birth date", "birthdate", "born on", "dob", "d.o.b.", "born", "birthday",
+        "age", "place of birth", "geburtsdatum", "geboren am", "geb.", "alter",
         "fecha de nacimiento", "date de naissance", "data di nascita", "data de nascimento",
         "geboortedatum", "data urodzenia"],
     "a marital status": [
         "marital status", "familienstand", "estado civil", "situation familiale", "état civil",
         "stato civile", "burgerlijke staat", "stan cywilny"],
     "a nationality": [
-        "nationality", "citizenship", "staatsangehörigkeit", "nacionalidad", "nationalité",
+        "nationality", "citizenship", "citizen of", "staatsangehörigkeit", "nationalität",
+        "nacionalidad", "nationalité",
         "nazionalità", "nacionalidade", "nationaliteit", "obywatelstwo"],
     "an identity, tax or bank number": [
-        "passport number", "id card number", "identity card", "social security number",
+        "passport number", "passport", "id card number", "identity card", "personalausweis",
+        "national id", "social security number", "account number", "routing number", "swift", "bic",
         "national insurance number", "tax id", "steuer-id", "codice fiscale", "sort code"],
 }
+# Labels that are ordinary words in running text ("born and raised", "Swift", "age of"): they count
+# only as a label with a value, never warn on their own.
+LABEL_ONLY = {"born", "birthday", "age", "alter", "geb.", "d.o.b.", "dob", "passport", "swift",
+              "bic", "citizen of"}
 # Short identity and bank codes count only next to a value ("NIE: X1234567L", "CPF 123.456"),
 # since as bare words several are ordinary words in some language.
 ID_CODES = ["ssn", "nino", "dni", "nie", "nif", "cpf", "cbu", "bsn", "nir", "pesel",
@@ -257,9 +295,11 @@ PRIVATE_PATTERNS = [
      "bank number", re.I),
 ]
 STREET_RE = re.compile(
-    r"\d+\s*\w*\s*(street|st\.|avenue|ave\.|road|rd\.|lane|stra(ss|ß)e|weg|platz|calle|avenida|"
-    r"rue|via|viale|rua|straat|laan|ulica)\b|\b(street|stra(ss|ß)e|weg|platz|calle|avenida|rue|"
-    r"via|rua|straat|laan|ulica)\s+\d+", re.I)
+    r"\d{1,5}\s{0,3}[a-z]{0,30}\s{0,3}(street|st\.|avenue|ave\.|road|rd\.|lane|drive|"
+    r"stra(ss|ß)e|weg|platz|calle|avenida|rue|via|viale|rua|straat|laan|ulica)\b"
+    r"|\b(street|stra(ss|ß)e|weg|platz|allee|gasse|calle|avenida|rue|via|rua|straat|laan|ulica)"
+    r"\s{1,3}\d{1,5}"
+    r"|\w{1,30}(stra(ss|ß)e|weg|platz|allee|gasse|straat|laan)\s{0,3}\d{1,5}", re.I)
 
 
 def check_privacy(cv: dict, market: str = "international") -> list[Issue]:
@@ -270,12 +310,22 @@ def check_privacy(cv: dict, market: str = "international") -> list[Issue]:
         if (cv or {}).get(key):
             issues.append(Issue("error", f"cv.{key}", f"{what}: leave it out; it invites bias "
                                 f"and no {market} employer needs it to shortlist you"))
-    for where, text in strings(cv):
+    labelled = {}
+    for where, _, entry in entries(cv):
+        if isinstance(entry.get("label"), str) and "details" in entry:
+            labelled[f"{where}.label"] = entry["label"].strip().rstrip(":").lower()
+    for where, value in labelled.items():
+        for what, labels in PRIVATE_LABELS.items():
+            if value in labels:
+                issues.append(Issue("error", where, f"{what}: leave it out of the CV"))
+    for where, full in strings(cv):
+        text = full[:2000]  # the patterns below need no more, and stay linear on hostile input
         for what, labels in PRIVATE_LABELS.items():
             for label in labels:
-                if re.search(rf"\b{re.escape(label)}\s*:", text, re.I):
+                if re.search(rf"(?<!\w){re.escape(label)}\s*:", text, re.I):
                     issues.append(Issue("error", where, f"{what}: leave it out of the CV"))
-                elif re.search(rf"\b{re.escape(label)}\b", text, re.I):
+                elif label not in LABEL_ONLY and re.search(rf"(?<!\w){re.escape(label)}(?!\w)",
+                                                           text, re.I):
                     issues.append(Issue("warning", where, f"mentions '{label}': fine if it "
                                         "describes the work, never your own "
                                         + what.split(" ", 1)[1]))
@@ -283,10 +333,39 @@ def check_privacy(cv: dict, market: str = "international") -> list[Issue]:
             if re.search(pattern, text, flags):
                 issues.append(Issue("error", where, f"{what}: leave it out of the CV"))
     location = str((cv or {}).get("location") or "")
-    if STREET_RE.search(location) or re.search(r"\d{4,}", location):
+    if STREET_RE.search(location) or re.search(r"\d", location):
         issues.append(Issue("error", "cv.location",
                             "looks like a street address or postcode: give the city and "
                             "country only"))
+    for where, text in strings(cv):
+        if where != "cv.location" and STREET_RE.search(text[:2000]):
+            issues.append(Issue("warning", where, "looks like a street address: fine for an "
+                                "employer's office only if you mean it, never your own"))
+    return issues
+
+
+# RenderCV 2.8's built-in themes. A theme name that is not one of them makes RenderCV import a
+# folder of that name next to the YAML and run its __init__.py: code from the repository.
+BUILT_IN_THEMES = {"classic", "ember", "engineeringclassic", "engineeringresumes", "harvard",
+                   "ink", "moderncv", "opal", "sb2nov"}
+
+
+def check_render_settings(merged: dict) -> list[Issue]:
+    """Settings that would make a render run code from the repository or move its files: a custom
+    theme, RenderCV's own render command (output paths) and rendercv_settings. cvcite sets the
+    paths itself."""
+    issues = []
+    theme = str((merged.get("design") or {}).get("theme", "classic"))
+    if theme not in BUILT_IN_THEMES:
+        issues.append(Issue("error", "design.theme", f"'{theme}' is not a built-in RenderCV "
+                            f"theme ({', '.join(sorted(BUILT_IN_THEMES))}): custom themes run "
+                            "code from the repository, so cvcite does not render them"))
+    if "rendercv_settings" in merged:
+        issues.append(Issue("error", "rendercv_settings", "rendercv_settings is not "
+                            "supported: cvcite sets the render paths itself"))
+    if "render_command" in (merged.get("settings") or {}):
+        issues.append(Issue("error", "settings.render_command", "settings.render_command is "
+                            "not supported: cvcite sets the render paths itself"))
     return issues
 
 
@@ -294,6 +373,7 @@ def run_all(merged: dict, *, banned: tuple[str, ...], facts: list[dict] | None,
             market: str, skills: str = "Skills",
             today: dt.date | None = None) -> list[Issue]:
     cv = merged.get("cv") or {}
-    return (check_dates(cv, today) + check_text(cv, merged.get("settings"), banned)
+    return (check_render_settings(merged)
+            + check_dates(cv, today) + check_text(cv, merged.get("settings"), banned)
             + check_skills_backed(cv, skills) + check_numbers_in_ledger(cv, facts)
             + check_privacy(cv, market))

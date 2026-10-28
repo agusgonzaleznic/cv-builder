@@ -19,8 +19,13 @@ class RenderError(Exception):
 
 
 def bundled_template() -> Path:
-    import rendercv.renderer.pdf_png as pdf_png
-    return Path(pdf_png.__file__).parent / "rendercv_typst"
+    """RenderCV's Typst package folder, found without importing RenderCV: importing it patches
+    ruamel.yaml's scanner, which would change how cvcite parses the next variant."""
+    import importlib.util
+    spec = importlib.util.find_spec("rendercv")
+    if spec is None or not spec.submodule_search_locations:
+        raise RenderError("RenderCV is not installed: run `cvcite doctor`")
+    return Path(list(spec.submodule_search_locations)[0]) / "renderer" / "rendercv_typst"
 
 
 def prepare_packages(folder: Path, *, ligatures: bool = False, kerning: bool = False) -> Path:
@@ -65,28 +70,41 @@ def render(merged_yaml: Path, out_dir: Path, send_name: str, scratch: Path, *,
            ligatures: bool = False, kerning: bool = False) -> Path:
     """Render `merged_yaml` into `out_dir/send_name` plus `preview_1.png`, `preview_2.png`, ...
 
-    RenderCV resolves every output path against the folder of the file it reads, so each path is
-    passed relative to it. Its Typst intermediate goes to `scratch`, keeping `out_dir` to what is
-    sent and released. Old previews are removed first: a CV that shrank from two pages to one
-    would otherwise keep a stale second preview.
+    RenderCV reads more than the file it is given: a folder named after the theme next to it
+    (templates and Python code) and paths resolved against its folder. So the file is copied into a
+    fresh folder cvcite creates for this render, and every output path is passed relative to that
+    folder. The Typst intermediate goes to `scratch`, keeping `out_dir` to what is sent and
+    released. Old previews are removed first: a CV that shrank from two pages to one would
+    otherwise keep a stale second preview.
     """
     out_dir.mkdir(parents=True, exist_ok=True)
     scratch.mkdir(parents=True, exist_ok=True)
     for old in out_dir.glob("preview_*.png"):
         old.unlink()
     packages = prepare_packages(scratch / "typst-packages", ligatures=ligatures, kerning=kerning)
-    base = merged_yaml.parent
+    base = scratch / "input"
+    if base.exists():
+        shutil.rmtree(base)
+    base.mkdir()
+    source = base / "cv.yaml"
+    shutil.copyfile(merged_yaml, source)
 
     def rel(path: Path) -> str:
         return os.path.relpath(path, base)
 
-    cmd = [sys.executable, "-m", "cvcite._rendercv_shim", str(packages),
-           "render", str(merged_yaml),
+    # -P: never put the CV repository on sys.path, where a stray json.py would shadow the
+    # standard library inside the render.
+    cmd = [sys.executable, "-P", "-m", "cvcite._rendercv_shim", str(packages),
+           "render", str(source),
            "--output-folder", rel(scratch / "typst"),
+           "--typst-path", rel(scratch / "typst" / "cv.typ"),
            "--pdf-path", rel(out_dir / send_name),
            "--png-path", rel(out_dir / "preview.png"),
            "--dont-generate-markdown"]
-    proc = subprocess.run(cmd, capture_output=True, text=True)
+    try:
+        proc = subprocess.run(cmd, capture_output=True, text=True, timeout=300)
+    except subprocess.TimeoutExpired as exc:
+        raise RenderError("RenderCV took longer than 5 minutes; stopped") from exc
     pdf = out_dir / send_name
     if proc.returncode != 0 or not pdf.exists():
         tail = "\n".join((proc.stdout + proc.stderr).strip().splitlines()[-25:])

@@ -20,9 +20,9 @@ classifiers = [
 ]
 dependencies = [
   "rendercv[full]==2.8",
-  "pypdf>=5.0",
-  "pdfminer.six>=20240706",
-  "ruamel.yaml>=0.18",
+  "pypdf>=6.21",
+  "pdfminer.six>=20260107",
+  "ruamel.yaml>=0.19",
 ]
 
 [project.optional-dependencies]

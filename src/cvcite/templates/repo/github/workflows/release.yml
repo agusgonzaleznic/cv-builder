@@ -36,9 +36,11 @@ jobs:
             echo "::error::Run this workflow on main, not $GITHUB_REF: the newest release is the one to download."
             exit 1
           fi
-          private=$(gh api "repos/$GITHUB_REPOSITORY" --jq .private)
-          if [ "$private" != "true" ]; then
-            echo "::error::$GITHUB_REPOSITORY is not private (private=$private). The PDFs carry contact details; nothing was published."
+          # Exactly "private": an organization's "internal" repository counts as private in the
+          # API's private flag, yet everyone in the organization can read it.
+          visibility=$(gh api "repos/$GITHUB_REPOSITORY" --jq .visibility)
+          if [ "$visibility" != "private" ]; then
+            echo "::error::$GITHUB_REPOSITORY is $visibility, not private. The PDFs carry contact details; nothing was published."
             exit 1
           fi
 

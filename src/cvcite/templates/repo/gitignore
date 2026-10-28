@@ -7,5 +7,16 @@ __pycache__/
 .DS_Store
 
 # Your source documents: an old CV, the LinkedIn data export, reference letters. They stay on
-# your machine. Never commit an identity document, a contract, a payslip or a bank statement.
+# your machine, in inputs/ or anywhere else. Never commit an identity document, a contract, a
+# payslip or a bank statement.
 inputs/
+*.pdf
+*.doc
+*.docx
+*.odt
+*.rtf
+*.pages
+*.zip
+
+# Facts you keep private (facts.private.yaml) and anything else named *.private.*
+*.private.*

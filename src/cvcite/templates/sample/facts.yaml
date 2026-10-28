@@ -53,8 +53,11 @@ facts:
     source: "Certificate"
     confirmed: 2026-01-15
     visibility: public
+  # In your own repository a private fact belongs in facts.private.yaml, which git ignores; it
+  # sits here only so the sample shows one.
   - id: kestrel-invoicing
     text: "The Kestrel data platform carries GBP 90M of invoicing a year."
+    terms: ["Project Tidewater"]
     source: "Internal finance review, 2025"
     confirmed: 2026-01-15
     visibility: private

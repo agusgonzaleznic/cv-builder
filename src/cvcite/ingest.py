@@ -19,10 +19,30 @@ from pathlib import Path
 
 from . import gate
 
-# Fields of the LinkedIn export that are never read into anything: a CV leaves them out, and
-# reading them would put them one copy-paste away from a document that gets sent.
-LINKEDIN_DROPPED = {"Birth Date", "Address", "Zip Code", "Instant Messengers", "Maiden Name",
-                    "Twitter Handles"}
+# The only columns read from each file of the LinkedIn export. Everything else is dropped,
+# including any column LinkedIn adds later: birth date, address and the like are never read,
+# so they are never one copy-paste away from a document that gets sent.
+LINKEDIN_COLUMNS = {
+    "profile": ["First Name", "Last Name", "Headline", "Summary", "Industry", "Geo Location",
+                "Websites"],
+    "positions": ["Company Name", "Title", "Description", "Location", "Started On",
+                  "Finished On"],
+    "education": ["School Name", "Start Date", "End Date", "Notes", "Degree Name", "Activities"],
+    "skills": ["Name"],
+    "certifications": ["Name", "Url", "Authority", "Started On", "Finished On"],
+    "languages": ["Name", "Proficiency"],
+    "projects": ["Title", "Description", "Url", "Started On", "Finished On"],
+    "honors": ["Title", "Description", "Issued On"],
+    "courses": ["Name", "Number"],
+}
+MAX_MEMBER_BYTES = 50 * 1024 * 1024  # a CSV or document part larger than this is refused
+CONTROL = re.compile(r"[\x00-\x08\x0b\x0c\x0e-\x1f\x7f]")
+
+
+def read_member(zf: zipfile.ZipFile, name: str) -> bytes:
+    if zf.getinfo(name).file_size > MAX_MEMBER_BYTES:
+        raise ValueError(f"{name} is larger than {MAX_MEMBER_BYTES // 2**20} MB unpacked")
+    return zf.read(name)
 # Each file, the key it gets, and a column its header row holds, to find that row under any
 # preamble LinkedIn puts above it.
 LINKEDIN_FILES = {
@@ -40,24 +60,29 @@ LINKEDIN_FILES = {
 
 class _Text(html.parser.HTMLParser):
     BLOCK = {"p", "div", "br", "li", "h1", "h2", "h3", "h4", "tr", "section", "article"}
+    VOID = {"br", "img", "input", "meta", "link", "hr", "source", "wbr"}
 
     def __init__(self):
         super().__init__()
         self.parts: list[str] = []
-        self.skip = 0
+        self.skip_tags: list[str] = []  # script, style, template and hidden elements
 
     def handle_starttag(self, tag, attrs):
-        if tag in ("script", "style"):
-            self.skip += 1
-        elif tag in self.BLOCK:
+        a = {k: (v or "") for k, v in attrs}
+        style = a.get("style", "").replace(" ", "").lower()
+        hidden = ("hidden" in a or a.get("aria-hidden") == "true" or "display:none" in style
+                  or "visibility:hidden" in style)
+        if tag in ("script", "style", "template") or (hidden and tag not in self.VOID):
+            self.skip_tags.append(tag)
+        elif tag in self.BLOCK and not self.skip_tags:
             self.parts.append("\n")
 
     def handle_endtag(self, tag):
-        if tag in ("script", "style") and self.skip:
-            self.skip -= 1
+        if self.skip_tags and self.skip_tags[-1] == tag:
+            self.skip_tags.pop()
 
     def handle_data(self, data):
-        if not self.skip:
+        if not self.skip_tags:
             self.parts.append(data)
 
 
@@ -69,10 +94,15 @@ def html_text(markup: str) -> str:
 
 def xml_text(xml: str, paragraph_tags: tuple[str, ...]) -> str:
     """Text of a WordprocessingML or OpenDocument body: one line per paragraph."""
+    # Tracked deletions are not part of the document as it reads.
+    xml = re.sub(r"<w:del\b[^>]*>.*?</w:del>", "", xml, flags=re.S)
+    # Hidden runs (w:vanish) are not part of it either, and hidden text is where instructions
+    # aimed at AI tools hide.
+    xml = re.sub(r"<w:r\b(?:(?!</w:r>).)*?<w:vanish\b(?:(?!</w:r>).)*?</w:r>", "", xml, flags=re.S)
     for tag in paragraph_tags:
         xml = re.sub(rf"</{tag}>", "\n", xml)
     xml = re.sub(r"<w:tab/>|<text:tab/>", "\t", xml)
-    return html_text(re.sub(r"<[^>]+>", "", xml).replace("&amp;", "&"))
+    return html_text(re.sub(r"<[^<>]+>", "", xml).replace("&amp;", "&"))
 
 
 def pdf_text(path: Path) -> str:
@@ -87,9 +117,9 @@ def pdf_text(path: Path) -> str:
 def linkedin_export(path: Path) -> dict:
     """The CV-relevant CSV files of a LinkedIn data export, as lists of rows, with the private
     fields dropped. Works on the ZIP or on the unpacked folder."""
-    out: dict = {"dropped_fields": sorted(LINKEDIN_DROPPED)}
+    out: dict = {}
 
-    def rows(text: str, column: str) -> list[dict]:
+    def rows(text: str, column: str, keep: list[str]) -> list[dict]:
         # Some exports start with a "Notes:" preamble before the header row. LinkedIn documents
         # neither the files nor their headers, so headers are matched case-insensitively.
         lines = text.splitlines()
@@ -100,18 +130,19 @@ def linkedin_export(path: Path) -> dict:
         out = []
         for row in reader:
             clean = {" ".join(k.split()).title(): v for k, v in row.items() if k}
-            out.append({k: v for k, v in clean.items() if k not in LINKEDIN_DROPPED})
+            out.append({k: v for k, v in clean.items() if k in keep})
         return out
 
     if path.is_dir():
-        files = {p.name: p.read_text(encoding="utf-8-sig") for p in path.rglob("*.csv")}
+        files = {p.name: p.read_text(encoding="utf-8-sig") for p in path.rglob("*.csv")
+                 if p.name in LINKEDIN_FILES}
     else:
         with zipfile.ZipFile(path) as zf:
-            files = {Path(n).name: zf.read(n).decode("utf-8-sig") for n in zf.namelist()
-                     if n.endswith(".csv")}
+            files = {Path(n).name: read_member(zf, n).decode("utf-8-sig")
+                     for n in zf.namelist() if Path(n).name in LINKEDIN_FILES}
     for name, (key, column) in LINKEDIN_FILES.items():
         if name in files:
-            out[key] = rows(files[name], column)
+            out[key] = rows(files[name], column, LINKEDIN_COLUMNS[key])
     if not any(key in out for key, _ in LINKEDIN_FILES.values()):
         raise ValueError(f"{path} holds none of the LinkedIn export files "
                          f"({', '.join(LINKEDIN_FILES)})")
@@ -175,7 +206,13 @@ def json_resume(data: dict) -> dict:
 
 
 def ingest(path: Path) -> tuple[str, str]:
-    """(kind, content) for one input: kind is "text" or "json"."""
+    """(kind, content) for one input: kind is "text" or "json". Control characters are removed,
+    so nothing in a document can drive the terminal it is printed to."""
+    kind, content = _ingest(path)
+    return kind, CONTROL.sub("", content)
+
+
+def _ingest(path: Path) -> tuple[str, str]:
     suffix = path.suffix.lower()
     if path.is_dir() or suffix == ".zip":
         return "json", json.dumps(linkedin_export(path), indent=2, ensure_ascii=False)
@@ -184,8 +221,9 @@ def ingest(path: Path) -> tuple[str, str]:
     if suffix in (".docx", ".odt"):
         with zipfile.ZipFile(path) as zf:
             if suffix == ".docx":
-                return "text", xml_text(zf.read("word/document.xml").decode("utf-8"), ("w:p",))
-            return "text", xml_text(zf.read("content.xml").decode("utf-8"),
+                return "text", xml_text(read_member(zf, "word/document.xml").decode("utf-8"),
+                                        ("w:p",))
+            return "text", xml_text(read_member(zf, "content.xml").decode("utf-8"),
                                     ("text:p", "text:h"))
     if suffix in (".html", ".htm"):
         return "text", html_text(path.read_text(encoding="utf-8", errors="replace"))

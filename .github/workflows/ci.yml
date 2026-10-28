@@ -44,7 +44,7 @@ jobs:
       - name: Install the pinned dependencies
         run: |
           python -m venv .venv
-          .venv/bin/pip install --quiet --require-hashes --no-deps \
+          .venv/bin/pip install --quiet --require-hashes --no-deps --only-binary :all: \
             -r requirements/action.txt -r requirements/test.txt
 
       - name: Run the tests
@@ -67,6 +67,8 @@ jobs:
         with:
           working-directory: src/cvcite/templates/sample
           package: "true"
+          # This repository is public, and the sample person is made up.
+          allow-public: "true"
 
       - name: The release files are there
         working-directory: src/cvcite/templates/sample

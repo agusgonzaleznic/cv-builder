@@ -83,19 +83,30 @@ PDF. Nothing signs in to your account or edits it: LinkedIn's terms forbid autom
 - `release.yml` (run by hand) publishes the build as a release you can download anywhere. It
   refuses to run in a public repository, because the PDFs carry your contact details.
 - `cv-review.yml` runs the claim reviewer on pull requests. It does nothing until you add an
-  `ANTHROPIC_API_KEY` secret, and each run is billed to that key.
+  `ANTHROPIC_API_KEY` secret, and each run is billed to that key. It sends `AGENTS.md`,
+  `facts.yaml`, `cv.yaml` (contact details included), the overlays and the diff to Anthropic's
+  API; facts in `facts.private.yaml` are never committed, so never sent. The AI can only read
+  the CV files, and its review is posted as plain text. Use a key made for this alone, with a
+  spending limit.
 
 The action runs cvcite from the release you pin, with every Python package taken from a lock
-with its hashes. `init` pins it to that release's full commit SHA.
+with its hashes and no package built from source. `init` pins it to that release's full commit
+SHA. The action refuses to build in a repository that is not private; set `allow-public: "true"`
+only for a made-up CV, as this repository does for its sample. These guards stop mistakes;
+anyone who can push to your CV repository can still change its workflows.
 
 ## What gets checked
 
 `cvcite check` (no rendering) and every build:
 
 - dates: format, order, future dates, overlaps, gaps over six months
-- every number in a bullet present in a fact of the ledger; none from a `private` fact
+- every number in a bullet present in a fact of the ledger; none from a `private` fact, and none
+  of the `terms` a private fact lists (keep private facts in `facts.private.yaml`, which git
+  ignores); every fact's visibility one of `public`, `cv-only` or `private`
 - every skill on a skills line backed by a bullet of the same variant
 - an overlay never adds a skill the master lacks
+- only RenderCV's built-in themes, and no render settings that move files: a custom theme runs
+  code from the repository
 - no TODO, no banned character (em dashes by default), no RenderCV trap
 - privacy: no photo, date of birth, nationality, marital status, street address, identity or bank
   number, or WhatsApp link
@@ -128,8 +139,9 @@ Each check has a test that plants the defect and proves the check fails on it.
 [RenderCV](https://github.com/rendercv/rendercv) turns the YAML into [Typst](https://typst.app)
 and then into the PDF. cvcite renders with ligatures and kerning off: with ligatures on, one
 extractor lost every word containing "ff", "ffi" or "ffl", and with kerning on, another read a
-bold "Airflow" as two words. It also ships the one Typst package RenderCV's template imports, so
-a render needs no network.
+bold "Airflow" as two words. It also ships the one Typst package RenderCV's template imports and
+switches off RenderCV's check for a newer release (a PyPI request made without verifying TLS),
+so a render makes no network request and writes nothing outside the build.
 
 ## Development
 

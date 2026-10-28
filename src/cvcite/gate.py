@@ -71,15 +71,15 @@ def _pdfminer(pdf: Path) -> str:
 def _ghostscript(pdf: Path) -> str:
     result = subprocess.run(
         ["gs", "-q", "-dNOPAUSE", "-dBATCH", "-dSAFER", "-sDEVICE=txtwrite",
-         "-sOutputFile=-", str(pdf)],
-        capture_output=True, text=True, check=True,
+         "-sOutputFile=-", str(pdf.resolve())],
+        capture_output=True, text=True, check=True, timeout=120,
     )
     return result.stdout
 
 
 def _pdftotext(pdf: Path) -> str:
-    result = subprocess.run(["pdftotext", "-enc", "UTF-8", str(pdf), "-"],
-                            capture_output=True, text=True, check=True)
+    result = subprocess.run(["pdftotext", "-enc", "UTF-8", str(pdf.resolve()), "-"],
+                            capture_output=True, text=True, check=True, timeout=120)
     return result.stdout
 
 
