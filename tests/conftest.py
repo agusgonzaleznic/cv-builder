@@ -8,7 +8,7 @@ from pathlib import Path
 
 import pytest
 
-from cv_builder import overlay, render
+from cvcite import overlay, render
 
 # A made-up CV of realistic length, built for the controls: "traffic" carries an ffi ligature,
 # bold "Airflow" carries the f-l pair that kerning pushes apart, "event-driven" is a compound the
@@ -101,9 +101,9 @@ def offline_action_ref(request, monkeypatch):
     tests the lookup itself."""
     if "real_action_ref" in request.keywords:
         return
-    from cv_builder import scaffold
+    from cvcite import scaffold
     monkeypatch.setattr(scaffold, "action_ref",
-                        lambda: "agusgonzaleznic/cv-builder@" + "0" * 40 + " # v0.0.0")
+                        lambda: "agusgonzaleznic/cvcite@" + "0" * 40 + " # v0.0.0")
 
 
 @pytest.fixture
@@ -115,4 +115,4 @@ def has_ghostscript() -> bool:
     return shutil.which("gs") is not None
 
 
-SAMPLE = Path(__file__).resolve().parent.parent / "src" / "cv_builder" / "templates" / "sample"
+SAMPLE = Path(__file__).resolve().parent.parent / "src" / "cvcite" / "templates" / "sample"

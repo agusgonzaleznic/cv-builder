@@ -1,13 +1,13 @@
-# cv-builder as a GitHub Action: checks, renders and gates every CV variant of the repository it
+# cvcite as a GitHub Action: checks, renders and gates every CV variant of the repository it
 # runs in, and can package the build for a release. Use it from a CV repository made by
-# `cv-builder init`, pinned to a full commit SHA with the release in a comment.
+# `cvcite init`, pinned to a full commit SHA with the release in a comment.
 #
-# It runs cv-builder from this action's own checkout, so the code that runs is exactly the
+# It runs cvcite from this action's own checkout, so the code that runs is exactly the
 # release the workflow pins. Every Python package comes from a lock with every hash pinned, and
-# cv-builder runs from its source folder, so no Python package is built or fetched unpinned.
+# cvcite runs from its source folder, so no Python package is built or fetched unpinned.
 # Python itself and Ghostscript come from setup-python and apt, signed but not pinned here.
 
-name: cv-builder
+name: cvcite
 description: Check, render and gate every CV variant, the way applicant tracking systems read it
 author: Agustin Gonzalez Nicolini
 branding:
@@ -54,19 +54,19 @@ runs:
         sudo timeout 300 apt-get install -y --no-install-recommends ghostscript
         echo "Ghostscript $(gs --version)"
 
-    - name: Install cv-builder
+    - name: Install cvcite
       shell: bash
       env:
         ACTION_PATH: ${{ github.action_path }}
       run: |
         set -euo pipefail
-        venv="$RUNNER_TEMP/cv-builder-venv"
+        venv="$RUNNER_TEMP/cvcite-venv"
         python -m venv "$venv"
         "$venv/bin/pip" install --quiet --disable-pip-version-check --require-hashes --no-deps \
           -r "$ACTION_PATH/requirements/action.txt"
-        launcher="$RUNNER_TEMP/cv-builder-bin/cv-builder"
+        launcher="$RUNNER_TEMP/cvcite-bin/cvcite"
         mkdir -p "$(dirname "$launcher")"
-        printf '#!/bin/sh\nPYTHONPATH="%s/src" exec "%s/bin/python" -m cv_builder "$@"\n' \
+        printf '#!/bin/sh\nPYTHONPATH="%s/src" exec "%s/bin/python" -m cvcite "$@"\n' \
           "$ACTION_PATH" "$venv" > "$launcher"
         chmod +x "$launcher"
         echo "$(dirname "$launcher")" >> "$GITHUB_PATH"
@@ -75,10 +75,10 @@ runs:
     - name: Check, render and gate
       shell: bash
       working-directory: ${{ inputs.working-directory }}
-      run: cv-builder build
+      run: cvcite build
 
     - name: Package the build
       if: inputs.package == 'true'
       shell: bash
       working-directory: ${{ inputs.working-directory }}
-      run: cv-builder package
+      run: cvcite package

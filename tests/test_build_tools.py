@@ -6,8 +6,8 @@ from pathlib import Path
 
 import pytest
 
-from cv_builder import checks, config, overlay, scaffold
-from cv_builder.package import package
+from cvcite import checks, config, overlay, scaffold
+from cvcite.package import package
 
 from .conftest import SAMPLE
 
@@ -75,7 +75,7 @@ def test_overlay_narrowing_is_allowed():
 def test_config_defaults_and_codepoints(tmp_path):
     cfg = config.load(tmp_path)
     assert cfg.pages == 2 and cfg.banned == (chr(0x2014), chr(0x2015), chr(0x2E3A))
-    write(tmp_path, "cv-builder.toml", '[gate]\nbanned_characters = ["U+2013"]\n')
+    write(tmp_path, "cvcite.toml", '[gate]\nbanned_characters = ["U+2013"]\n')
     assert config.load(tmp_path).banned == (chr(0x2013),)
 
 
@@ -86,7 +86,7 @@ def test_config_defaults_and_codepoints(tmp_path):
     ('[build]\nsend_name = "a/b.pdf"\n', "send_name"),
 ])
 def test_config_rejects_typos(tmp_path, text, expect):
-    write(tmp_path, "cv-builder.toml", text)
+    write(tmp_path, "cvcite.toml", text)
     with pytest.raises(ValueError, match=expect):
         config.load(tmp_path)
 
@@ -97,7 +97,7 @@ def test_init_blank_needs_filling_in(tmp_path):
     assert scaffold.init(tmp_path / "cv") == 0
     root = tmp_path / "cv"
     for name in ("AGENTS.md", "CLAUDE.md", ".gitignore", "cv.yaml", "facts.yaml",
-                 "cv-builder.toml", "variants/general.yaml", ".github/workflows/cv.yml",
+                 "cvcite.toml", "variants/general.yaml", ".github/workflows/cv.yml",
                  ".github/workflows/release.yml", ".github/workflows/cv-review.yml",
                  ".github/dependabot.yml"):
         assert (root / name).is_file(), name
@@ -116,15 +116,15 @@ def test_action_ref_pins_the_release_commit(monkeypatch):
 
     monkeypatch.setattr(scaffold, "__version__", "9.9.9")
     monkeypatch.setattr(scaffold.subprocess, "run", lambda *a, **k: Done())
-    assert scaffold.action_ref() == f"agusgonzaleznic/cv-builder@{sha} # v9.9.9"
+    assert scaffold.action_ref() == f"agusgonzaleznic/cvcite@{sha} # v9.9.9"
 
     def offline(*a, **k):
         raise OSError("no network")
 
     monkeypatch.setattr(scaffold.subprocess, "run", offline)
-    assert scaffold.action_ref() == "agusgonzaleznic/cv-builder@v9.9.9"
+    assert scaffold.action_ref() == "agusgonzaleznic/cvcite@v9.9.9"
     monkeypatch.setattr(scaffold, "__version__", "9.9.10.dev0")
-    assert scaffold.action_ref().startswith("agusgonzaleznic/cv-builder@main")
+    assert scaffold.action_ref().startswith("agusgonzaleznic/cvcite@main")
 
 
 def test_init_refuses_a_folder_with_files(tmp_path):
@@ -152,10 +152,10 @@ def test_sample_is_the_shipped_sample():
 # ---------------------------------------------------------------------------------------- package
 
 def test_package_requires_exactly_the_build(tmp_path):
-    write(tmp_path, "cv-builder.toml", '[build]\nsend_name = "CV.pdf"\npages = 1\n')
+    write(tmp_path, "cvcite.toml", '[build]\nsend_name = "CV.pdf"\npages = 1\n')
     write(tmp_path, "variants/one.yaml", "_meta: {name: one}\n")
     ok, messages = package(config.load(tmp_path))
-    assert not ok and "run `cv-builder build` first" in messages[0]
+    assert not ok and "run `cvcite build` first" in messages[0]
     for rel in ("one/CV.pdf", "one/preview_1.png", "cv-one.yaml"):
         write(tmp_path, f"build/{rel}", "x")
     ok, messages = package(config.load(tmp_path))

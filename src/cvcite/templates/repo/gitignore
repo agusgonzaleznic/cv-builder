@@ -1,0 +1,11 @@
+# Made by cvcite: never edited, never committed. The PDFs carry your contact details.
+build/
+rendercv_output/
+.tmp/
+.venv/
+__pycache__/
+.DS_Store
+
+# Your source documents: an old CV, the LinkedIn data export, reference letters. They stay on
+# your machine. Never commit an identity document, a contract, a payslip or a bank statement.
+inputs/

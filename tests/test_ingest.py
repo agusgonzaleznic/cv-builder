@@ -7,7 +7,7 @@ import zipfile
 
 import pytest
 
-from cv_builder import compare, ingest
+from cvcite import compare, ingest
 
 PROFILE = ("First Name,Last Name,Maiden Name,Address,Birth Date,Headline,Summary\n"
            'Robin,Example,,"1 High Street, London",1 May 1990,Data Engineering Manager,'

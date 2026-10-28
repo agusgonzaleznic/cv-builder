@@ -65,11 +65,11 @@ jobs:
       - name: Check, render, gate and package the sample
         uses: ./
         with:
-          working-directory: src/cv_builder/templates/sample
+          working-directory: src/cvcite/templates/sample
           package: "true"
 
       - name: The release files are there
-        working-directory: src/cv_builder/templates/sample
+        working-directory: src/cvcite/templates/sample
         run: |
           set -euo pipefail
           unzip -l .tmp/release/build.zip

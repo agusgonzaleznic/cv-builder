@@ -1,1 +1,1 @@
-"""cv-builder tests."""
+"""cvcite tests."""

@@ -18,6 +18,6 @@ rendercv_output/
 .DS_Store
 
 # Never commit a real person's CV or identity documents to this repository. It holds the tool
-# and a made-up sample only; a user's CV lives in their own private repo (`cv-builder init`).
+# and a made-up sample only; a user's CV lives in their own private repo (`cvcite init`).
 inputs/
 *.private.*
