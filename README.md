@@ -86,12 +86,14 @@ PDF. Nothing signs in to your account or edits it: LinkedIn's terms forbid autom
   `ANTHROPIC_API_KEY` secret, and each run is billed to that key. It sends `AGENTS.md`,
   `facts.yaml`, `cv.yaml` (contact details included), the overlays and the diff to Anthropic's
   API; facts in `facts.private.yaml` are never committed, so never sent. The AI can only read
-  the CV files, and its review is posted as plain text.
+  the CV files, and its review is posted as plain text. Use a key made for this alone, with a
+  spending limit.
 
 The action runs cvcite from the release you pin, with every Python package taken from a lock
 with its hashes and no package built from source. `init` pins it to that release's full commit
 SHA. The action refuses to build in a repository that is not private; set `allow-public: "true"`
-only for a made-up CV, as this repository does for its sample.
+only for a made-up CV, as this repository does for its sample. These guards stop mistakes;
+anyone who can push to your CV repository can still change its workflows.
 
 ## What gets checked
 

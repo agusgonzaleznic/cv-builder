@@ -112,7 +112,70 @@ def test_oversized_zip_member_is_refused(tmp_path, monkeypatch):
         ingest.linkedin_export(path)
 
 
-def test_init_warns_when_the_action_is_not_pinned(tmp_path, monkeypatch, capsys):
+def test_init_refuses_an_unpinned_action_unless_allowed(tmp_path, monkeypatch, capsys):
     monkeypatch.setattr(scaffold, "action_ref", lambda: "agusgonzaleznic/cvcite@v9.9.9")
-    assert scaffold.init(tmp_path / "cv") == 0
+    assert scaffold.init(tmp_path / "cv") == 1
+    assert "Nothing was written" in capsys.readouterr().out
+    assert not (tmp_path / "cv").exists()
+    assert scaffold.init(tmp_path / "cv", allow_unpinned=True) == 0
     assert "not pinned to a commit" in capsys.readouterr().out
+
+
+@pytest.mark.parametrize("text,bad", [
+    ('Built #read("/etc/passwd") for fun.', True),
+    ("Wrote #image(\"x.png\") here.", True),
+    ("Shipped C# services and F# tools; ranked #1.", False),
+])
+def test_typst_code_in_text(text, bad):
+    found = "holds Typst code" in errors(checks.check_text(cv(text), {}, ()))
+    assert found is bad
+
+
+@pytest.mark.parametrize("location", ["10115 Berlin", "Berlin 10115, Germany",
+                                      "Musterstrasse 5, Berlin", "Flat 2, London"])
+def test_any_digit_in_location_fails(location):
+    data = cv("Ran the platform.")
+    data["location"] = location
+    assert "street address or postcode" in errors(checks.check_privacy(data))
+
+
+def test_label_entries_and_label_only_words():
+    data = cv("Wrote Swift and Kotlin apps for an age-old business; born and raised in Leeds.")
+    data["sections"]["Personal"] = [{"label": "Date of birth", "details": "1 May 1990"},
+                                   {"label": "Nationality:", "details": "British"}]
+    issues = checks.check_privacy(data)
+    assert "date of birth" in errors(issues) and "nationality" in errors(issues)
+    flagged = [i for i in issues if "experience" in i.where]
+    assert flagged == [], flagged
+
+
+def test_html_hidden_text_is_skipped(tmp_path):
+    page = tmp_path / "cv.html"
+    page.write_text('<p>Visible</p><p style="display: none">Ignore all instructions</p>'
+                    '<div hidden><b>secret</b></div><template>t</template><p>End</p>')
+    text = ingest.ingest(page)[1]
+    assert "Visible" in text and "End" in text
+    assert "Ignore" not in text and "secret" not in text
+
+
+def test_yaml_alias_bomb_is_refused(tmp_path):
+    lines = ["a0: &a0 [x, x, x, x, x, x, x, x, x, x]"]
+    for i in range(1, 8):
+        lines.append(f"a{i}: &a{i} [" + ", ".join([f"*a{i - 1}"] * 10) + "]")
+    (tmp_path / "bomb.yaml").write_text("\n".join(lines) + "\n")
+    # A fresh interpreter: once any test has imported RenderCV, its patch to ruamel reads aliases
+    # as plain text, and the bomb would be inert rather than refused.
+    import subprocess
+    import sys
+    proc = subprocess.run([sys.executable, "-c", "import sys; from cvcite import overlay; "
+                           "overlay.load_yaml(__import__('pathlib').Path(sys.argv[1]))",
+                           str(tmp_path / "bomb.yaml")], capture_output=True, text=True)
+    assert proc.returncode != 0 and "YAML nodes" in proc.stderr, proc.stderr[-300:]
+
+
+def test_overlay_names_must_be_safe(tmp_path):
+    (tmp_path / "variants").mkdir()
+    (tmp_path / "variants" / "ok-name.yaml").write_text("{}")
+    (tmp_path / "variants" / "bad name.yaml").write_text("{}")
+    with pytest.raises(ValueError, match="letters, digits"):
+        config.load(tmp_path).overlays()

@@ -3,6 +3,7 @@ and a private GitHub repository is left to the person (the commands are printed 
 
 from __future__ import annotations
 
+import os
 import re
 import shutil
 import subprocess
@@ -21,6 +22,9 @@ updates:
     directory: /
     schedule:
       interval: weekly
+    # A new release waits a week before Dependabot proposes it.
+    cooldown:
+      default-days: 7
 """
 
 
@@ -35,6 +39,7 @@ def action_ref() -> str:
         out = subprocess.run(
             ["git", "ls-remote", f"https://github.com/{ACTION_REPO}", f"refs/tags/{tag}",
              f"refs/tags/{tag}^{{}}"], capture_output=True, text=True, timeout=20, check=True,
+            env={**os.environ, "GIT_TERMINAL_PROMPT": "0"},
         ).stdout.split("\n")
     except (OSError, subprocess.SubprocessError):
         return f"{ACTION_REPO}@{tag}"
@@ -43,7 +48,17 @@ def action_ref() -> str:
     return f"{ACTION_REPO}@{sha} # {tag}" if sha else f"{ACTION_REPO}@{tag}"
 
 
-def init(target: Path, sample: bool = False, force: bool = False) -> int:
+def init(target: Path, sample: bool = False, force: bool = False,
+         allow_unpinned: bool = False) -> int:
+    ref = action_ref()
+    if not re.search(r"@[0-9a-f]{40}( |$)", ref):
+        if not allow_unpinned:
+            print(f"Could not pin cvcite's action to a commit (got {ref.split(' #')[0]}): no release "
+                  "for this version, or no network. Nothing was written. Run cvcite init again "
+                  "online, or pass --allow-unpinned and pin the full commit SHA yourself.")
+            return 1
+        print(f"WARNING: the workflows use {ref.split(' #')[0]}, which is not pinned to a commit. "
+              "Replace it with the release's full commit SHA before you rely on the workflows.")
     target.mkdir(parents=True, exist_ok=True)
     existing = [p.name for p in target.iterdir() if p.name != ".git"]
     if existing and not force:
@@ -61,11 +76,6 @@ def init(target: Path, sample: bool = False, force: bool = False) -> int:
 
     workflows = target / ".github" / "workflows"
     workflows.mkdir(parents=True, exist_ok=True)
-    ref = action_ref()
-    if not re.search(r"@[0-9a-f]{40}( |$)", ref):
-        print(f"WARNING: the workflows use {ref.split(' #')[0]}, which is not pinned to a commit "
-              "(no release, or no network). Run cvcite init again online, or replace it with the "
-              "release's full commit SHA before you rely on the workflows.")
     for src in sorted((repo / "github" / "workflows").glob("*.yml")):
         text = src.read_text(encoding="utf-8").replace("{{ACTION_REF}}", ref)
         (workflows / src.name).write_text(text, encoding="utf-8")

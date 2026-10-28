@@ -161,7 +161,8 @@ def cmd_compare(args) -> int:
 def cmd_init(args) -> int:
     from .scaffold import init
 
-    return init(Path(args.target or args.dir), sample=args.sample, force=args.force)
+    return init(Path(args.target or args.dir), sample=args.sample, force=args.force,
+                allow_unpinned=args.allow_unpinned)
 
 
 def cmd_doctor(args) -> int:
@@ -182,6 +183,8 @@ def main(argv: list[str] | None = None) -> int:
     p.add_argument("target", nargs="?", help="the folder to create")
     p.add_argument("--sample", action="store_true", help="start from the made-up sample CV")
     p.add_argument("--force", action="store_true", help="write into a folder that has files")
+    p.add_argument("--allow-unpinned", action="store_true",
+                   help="write the workflows even if the action cannot be pinned to a commit")
     p.set_defaults(func=cmd_init)
 
     p = sub.add_parser("check", help="dates, claims and privacy, without rendering")

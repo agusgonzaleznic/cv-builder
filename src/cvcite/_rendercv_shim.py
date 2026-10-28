@@ -25,8 +25,14 @@ def apply_patches(package_folder: pathlib.Path) -> None:
     """Point RenderCV at cvcite's package folder and switch off its update check. Fails closed:
     on a RenderCV without these functions, assigning them would do nothing and the render would
     quietly fetch the icon package, keep ligatures on and call PyPI."""
+    from importlib.metadata import version
+
     from rendercv.cli import app
     from rendercv.renderer import pdf_png
+
+    if version("rendercv") != "2.8":
+        sys.exit(f"cvcite: RenderCV {version('rendercv')} is installed; this cvcite release "
+                 "supports RenderCV 2.8 only")
 
     for module, name in ((pdf_png, "get_package_path"), (app, "warn_if_new_version_is_available")):
         if not callable(getattr(module, name, None)):

@@ -33,8 +33,23 @@ def yaml_rt() -> YAML:
     return y
 
 
+MAX_NODES = 100_000  # far above any CV; stops a file of nested aliases before the checks walk it
+
+
 def load_yaml(path: Path):
-    return yaml_rt().load(path.read_text(encoding="utf-8"))
+    data = yaml_rt().load(path.read_text(encoding="utf-8"))
+    count, stack = 0, [data]
+    while stack:
+        node = stack.pop()
+        count += 1
+        if count > MAX_NODES:
+            raise ValueError(f"{path} expands to more than {MAX_NODES:,} YAML nodes "
+                             "(nested aliases?): refusing it")
+        if isinstance(node, dict):
+            stack.extend(node.values())
+        elif isinstance(node, list):
+            stack.extend(node)
+    return data
 
 
 def deep_merge(base, overlay):

@@ -19,8 +19,13 @@ class RenderError(Exception):
 
 
 def bundled_template() -> Path:
-    import rendercv.renderer.pdf_png as pdf_png
-    return Path(pdf_png.__file__).parent / "rendercv_typst"
+    """RenderCV's Typst package folder, found without importing RenderCV: importing it patches
+    ruamel.yaml's scanner, which would change how cvcite parses the next variant."""
+    import importlib.util
+    spec = importlib.util.find_spec("rendercv")
+    if spec is None or not spec.submodule_search_locations:
+        raise RenderError("RenderCV is not installed: run `cvcite doctor`")
+    return Path(list(spec.submodule_search_locations)[0]) / "renderer" / "rendercv_typst"
 
 
 def prepare_packages(folder: Path, *, ligatures: bool = False, kerning: bool = False) -> Path:
@@ -92,6 +97,7 @@ def render(merged_yaml: Path, out_dir: Path, send_name: str, scratch: Path, *,
     cmd = [sys.executable, "-P", "-m", "cvcite._rendercv_shim", str(packages),
            "render", str(source),
            "--output-folder", rel(scratch / "typst"),
+           "--typst-path", rel(scratch / "typst" / "cv.typ"),
            "--pdf-path", rel(out_dir / send_name),
            "--png-path", rel(out_dir / "preview.png"),
            "--dont-generate-markdown"]

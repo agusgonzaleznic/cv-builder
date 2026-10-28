@@ -56,7 +56,16 @@ class Config:
         return self.root / self.build_dir
 
     def overlays(self) -> list[Path]:
-        return sorted(self.variants_path.glob("*.yaml")) if self.variants_path.is_dir() else []
+        """The overlays, by file name: letters, digits, hyphens and underscores only, since the name
+        becomes a folder and a file under the build folder."""
+        if not self.variants_path.is_dir():
+            return []
+        found = sorted(self.variants_path.glob("*.yaml"))
+        bad = [p.name for p in found if not re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9_-]*", p.stem)]
+        if bad:
+            raise ValueError(f"overlay file names may hold only letters, digits, hyphens and "
+                             f"underscores: {bad}")
+        return found
 
 
 SECTIONS = {

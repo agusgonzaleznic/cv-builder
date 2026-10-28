@@ -79,7 +79,7 @@ runs:
       run: |
         set -euo pipefail
         venv="$RUNNER_TEMP/cvcite-venv"
-        python -m venv "$venv"
+        python -P -m venv "$venv"
         "$venv/bin/pip" install --quiet --disable-pip-version-check --require-hashes --no-deps \
           --only-binary :all: \
           -r "$ACTION_PATH/requirements/action.txt"
