@@ -1,0 +1,23 @@
+# Python and the toolchain: all regenerable
+.venv/
+.uv-cache/
+.uv-python/
+.uv-tools/
+.pip-cache/
+.cache/
+.pytest_cache/
+.ruff_cache/
+__pycache__/
+*.egg-info/
+dist/
+
+# Build output and scratch. The sample's build lands here, never in git.
+build/
+rendercv_output/
+.tmp/
+.DS_Store
+
+# Never commit a real person's CV or identity documents to this repository. It holds the tool
+# and a made-up sample only; a user's CV lives in their own private repo (`cv-builder init`).
+inputs/
+*.private.*
