@@ -1,0 +1,89 @@
+# The master: every fact of the CV, and the design. It is never sent on its own; each overlay in
+# variants/ positions it for one kind of role, and `cvcite build` turns each into a PDF.
+#
+# A made-up person. Every name, employer, place and figure in this file is fictional and exists
+# only to show how cvcite works. It has no phone number because RenderCV accepts only numbers
+# that can be real; add yours as phone: "+44 20 ..." (quoted, with the country code). A phone
+# number on the CV is one more reason to keep the repository private.
+cv:
+  name: Robin Example
+  headline: Data Engineering Manager
+  location: London, United Kingdom
+  email: robin@example.com
+  website: https://example.com
+  sections:
+    summary:
+      - "Data engineering manager who turns fragile batch pipelines into a platform analysts trust. Leads a team of 7 data engineers at a freight company; before that, built streaming pipelines in healthcare."
+    Skills:
+      - label: Languages
+        details: Python, SQL
+      - label: Data
+        details: Airflow, dbt, Kafka, Spark Structured Streaming
+      - label: Practices
+        details: Data contracts, on-call, CI
+    experience:
+      - company: Kestrel Freight
+        position: Data Engineering Manager
+        location: London
+        start_date: 2022-03
+        end_date: present
+        highlights:
+          - "Lead 7 data engineers in two teams and report to the VP of Data; own the data platform budget of GBP 400k a year."
+          - "Moved 120 nightly batch jobs from cron scripts to Airflow over two quarters, which cut failed overnight runs from 15 a month to 2."
+          - "Introduced data contracts between the shipment tracking and billing teams, so a breaking schema change now fails in CI instead of in the monthly invoice run."
+          - "Hired 3 engineers and set up the on-call rotation and runbooks for the data platform."
+      - company: Brightfield Health
+        position: Senior Data Engineer
+        location: London
+        start_date: 2018-06
+        end_date: 2022-02
+        highlights:
+          - "Built the event pipeline (Kafka, Spark Structured Streaming) behind the clinic scheduling dashboards, processing 3M events a day."
+          - "Rewrote the patient reporting models in dbt with a test on every model, so analysts could ship changes without waiting for a data engineer."
+          - "Cut the monthly warehouse bill from GBP 18k to GBP 11k over six months by partitioning the largest tables and removing unused extracts."
+      - company: Harbourline Retail
+        position: Data Analyst
+        location: Manchester
+        start_date: 2015
+        end_date: 2018
+        summary: "Sales and stock reporting for 40 stores in SQL and Python."
+    education:
+      - institution: Westbrook University
+        area: Mathematics
+        degree: BSc
+        start_date: 2012
+        end_date: 2015
+    Certifications:
+      - "Google Cloud Professional Data Engineer (2021)"
+    Languages:
+      - "English (native), Portuguese (B2)"
+
+design:
+  theme: engineeringresumes
+  page:
+    size: a4
+    show_top_note: false
+  header:
+    connections:
+      # The default prints a national number and drops the country code.
+      phone_number_format: international
+  typography:
+    # The default, "justified", lets Typst hyphenate words across lines, which splits keywords
+    # for every parser. The gate fails a PDF with such a split.
+    alignment: justified-with-no-hyphenation
+  colors:
+    # Opaque hex only, in quotes (YAML reads a bare # as the start of a comment). Every colour
+    # must reach 4.5:1 against white, or the gate fails the PDF.
+    section_titles: "#1d4f91"
+    links: "#1d4f91"
+    connections: "#4a5361"
+  templates:
+    # RenderCV's theme puts "--" between the employer and the place, and Typst prints that as
+    # an en dash. A plain comma reads the same to people and to parsers.
+    experience_entry:
+      main_column: "**POSITION**, COMPANY, LOCATION\nSUMMARY\nHIGHLIGHTS"
+      date_and_location_column: "DATE"
+    education_entry:
+      main_column: "**INSTITUTION**, DEGREE_WITH_AREA, LOCATION\nSUMMARY\nHIGHLIGHTS"
+      date_and_location_column: "DATE"
+      degree_column: null

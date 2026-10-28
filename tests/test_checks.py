@@ -6,7 +6,7 @@ import datetime as dt
 
 import pytest
 
-from cv_builder import checks
+from cvcite import checks
 
 TODAY = dt.date(2026, 6, 15)
 BANNED = (chr(0x2014),)

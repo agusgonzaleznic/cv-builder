@@ -9,7 +9,7 @@ import pytest
 from pypdf import PdfReader, PdfWriter
 from pypdf.generic import ContentStream, DictionaryObject, FloatObject, NameObject
 
-from cv_builder import gate
+from cvcite import gate
 
 from .conftest import CONTROL_CV, HYPHENATION_BAIT, has_ghostscript
 

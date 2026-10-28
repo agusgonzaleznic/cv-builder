@@ -1,5 +1,5 @@
 # Lints the workflows and proves every action pin, on every pull request and push to main. The
-# workflows that `cv-builder init` writes are linted too, with their placeholder filled in, since
+# workflows that `cvcite init` writes are linted too, with their placeholder filled in, since
 # they run in every user's repository.
 
 name: Lint
@@ -43,8 +43,8 @@ jobs:
           set -euo pipefail
           rendered="$RUNNER_TEMP/rendered/.github/workflows"
           mkdir -p "$rendered"
-          for f in src/cv_builder/templates/repo/github/workflows/*.yml; do
-            sed 's|{{ACTION_REF}}|agusgonzaleznic/cv-builder@0000000000000000000000000000000000000000 # v0.0.0|' \
+          for f in src/cvcite/templates/repo/github/workflows/*.yml; do
+            sed 's|{{ACTION_REF}}|agusgonzaleznic/cvcite@0000000000000000000000000000000000000000 # v0.0.0|' \
               "$f" > "$rendered/$(basename "$f")"
           done
           "$RUNNER_TEMP/actionlint" -color .github/workflows/*.yml "$rendered"/*.yml
@@ -63,7 +63,7 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           .github/scripts/verify-action-pins.sh .github/workflows action.yml \
-            src/cv_builder/templates/repo/github/workflows
+            src/cvcite/templates/repo/github/workflows
 
       - name: Check the workflows init writes pin what this repository pins
         run: .github/scripts/check-template-pins.sh

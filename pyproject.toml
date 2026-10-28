@@ -3,7 +3,7 @@ requires = ["hatchling>=1.27"]
 build-backend = "hatchling.build"
 
 [project]
-name = "cv-builder"
+name = "cvcite"
 dynamic = ["version"]
 description = "Build a CV from one master YAML file and an overlay per target role, and gate every PDF the way applicant tracking systems read it."
 readme = "README.md"
@@ -29,16 +29,16 @@ dependencies = [
 test = ["pytest>=8.0"]
 
 [project.scripts]
-cv-builder = "cv_builder.cli:main"
+cvcite = "cvcite.cli:main"
 
 [project.urls]
-Source = "https://github.com/agusgonzaleznic/cv-builder"
+Source = "https://github.com/agusgonzaleznic/cvcite"
 
 [tool.hatch.version]
-path = "src/cv_builder/__init__.py"
+path = "src/cvcite/__init__.py"
 
 [tool.hatch.build.targets.wheel]
-packages = ["src/cv_builder"]
+packages = ["src/cvcite"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

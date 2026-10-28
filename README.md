@@ -1,4 +1,4 @@
-# cv-builder
+# cvcite
 
 Build your CV from one master YAML file, tailor it for each kind of role with a small overlay,
 and gate every PDF the way applicant tracking systems (ATS) read it. Every claim on the CV traces
@@ -6,7 +6,7 @@ to a fact you confirmed, with its source.
 
 It comes in three parts that work together or alone:
 
-- **A command line** (`cv-builder`) that checks, renders and gates your CV. No AI involved.
+- **A command line** (`cvcite`) that checks, renders and gates your CV. No AI involved.
 - **A Claude Code plugin** whose skills interview you, one multiple-choice question at a time:
   they turn an old CV or a LinkedIn export into a fact ledger, check every date and claim, tailor
   the CV for a job posting, and compare LinkedIn, your website and GitHub against it.
@@ -32,10 +32,10 @@ You need Python 3.12 or newer (RenderCV 2.8 needs it). [uv](https://docs.astral.
 Ghostscript is optional (a third extractor for the gate).
 
 ```sh
-uv tool install git+https://github.com/agusgonzaleznic/cv-builder
-cv-builder init my-cv --sample      # try it with the made-up sample; drop --sample to start blank
+uv tool install git+https://github.com/agusgonzaleznic/cvcite
+cvcite init my-cv --sample      # try it with the made-up sample; drop --sample to start blank
 cd my-cv
-cv-builder build                    # check, render and gate every variant
+cvcite build                    # check, render and gate every variant
 ```
 
 The PDFs land in `build/<variant>/`, one folder per variant, each holding the file under the same
@@ -49,9 +49,11 @@ gh repo create my-cv --private --source . --push
 ## With Claude Code
 
 ```text
-/plugin marketplace add agusgonzaleznic/cv-builder
-/plugin install cv-builder@cv-builder
+/plugin install cvcite --marketplace agusgonzaleznic/cvcite
 ```
+
+Or in two steps: `/plugin marketplace add agusgonzaleznic/cvcite`, then
+`/plugin install cvcite@cvcite`.
 
 Then ask in your own words, for example "start my CV from inputs/old-cv.pdf" or "tailor my CV
 for this posting: <link>". The skills:
@@ -65,18 +67,17 @@ for this posting: <link>". The skills:
 | `cv-build` | Explains every gate failure and how to fix it |
 
 The skills follow the open Agent Skills format, so other agents that read `SKILL.md` files can use
-them too; `cv-builder init` also writes an `AGENTS.md` with the rules into your CV repository.
+them too; `cvcite init` also writes an `AGENTS.md` with the rules into your CV repository.
 
-The plugin is for Claude Code (terminal, desktop app and IDE extensions). It ships a small
-`bin/cv-builder` launcher, so the skills can run the command line even if you never installed it
-(through uv); plugins with executables cannot be added to claude.ai or Cowork.
+The plugin holds only its skills and the reviewer agent, in `plugin/`; the skills run the
+`cvcite` command line you installed above, and ask before installing it if it is missing.
 
 **LinkedIn is read only.** The audit works from LinkedIn's own data export or a profile saved as
 PDF. Nothing signs in to your account or edits it: LinkedIn's terms forbid automated access.
 
 ## In GitHub Actions
 
-`cv-builder init` writes three workflows into your CV repository:
+`cvcite init` writes three workflows into your CV repository:
 
 - `cv.yml` checks, renders and gates every variant on each pull request and each push to `main`.
 - `release.yml` (run by hand) publishes the build as a release you can download anywhere. It
@@ -84,12 +85,12 @@ PDF. Nothing signs in to your account or edits it: LinkedIn's terms forbid autom
 - `cv-review.yml` runs the claim reviewer on pull requests. It does nothing until you add an
   `ANTHROPIC_API_KEY` secret, and each run is billed to that key.
 
-The action runs cv-builder from the release you pin, with every Python package taken from a lock
+The action runs cvcite from the release you pin, with every Python package taken from a lock
 with its hashes. `init` pins it to that release's full commit SHA.
 
 ## What gets checked
 
-`cv-builder check` (no rendering) and every build:
+`cvcite check` (no rendering) and every build:
 
 - dates: format, order, future dates, overlaps, gaps over six months
 - every number in a bullet present in a fact of the ledger; none from a `private` fact
@@ -105,7 +106,7 @@ The gate, on every PDF:
 - no word hyphenated across a line by the typesetter
 - no text layer shattered into single words
 - every glyph plainly filled, in a colour with at least 4.5:1 contrast on white
-- the page count matches the budget in `cv-builder.toml`
+- the page count matches the budget in `cvcite.toml`
 
 Each check has a test that plants the defect and proves the check fails on it.
 
@@ -113,19 +114,19 @@ Each check has a test that plants the defect and proves the check fails on it.
 
 | Command | What it does |
 |---|---|
-| `cv-builder init [--sample]` | Creates a CV repository |
-| `cv-builder check` | The checks above, without rendering |
-| `cv-builder build [variant...]` | Check, render and gate; `-v` prints the full gate report |
-| `cv-builder gate <pdf> [yaml]` | Gates one PDF |
-| `cv-builder package` | Zips the build with checksums, as a release does |
-| `cv-builder ingest <file...>` | Text or data out of a CV (PDF, DOCX, ODT, HTML, Markdown), a LinkedIn export or a JSON Resume |
-| `cv-builder compare --linkedin <zip>` | The CV's roles against a LinkedIn export: titles and dates |
-| `cv-builder doctor` | Checks the toolchain |
+| `cvcite init [--sample]` | Creates a CV repository |
+| `cvcite check` | The checks above, without rendering |
+| `cvcite build [variant...]` | Check, render and gate; `-v` prints the full gate report |
+| `cvcite gate <pdf> [yaml]` | Gates one PDF |
+| `cvcite package` | Zips the build with checksums, as a release does |
+| `cvcite ingest <file...>` | Text or data out of a CV (PDF, DOCX, ODT, HTML, Markdown), a LinkedIn export or a JSON Resume |
+| `cvcite compare --linkedin <zip>` | The CV's roles against a LinkedIn export: titles and dates |
+| `cvcite doctor` | Checks the toolchain |
 
 ## How it renders
 
 [RenderCV](https://github.com/rendercv/rendercv) turns the YAML into [Typst](https://typst.app)
-and then into the PDF. cv-builder renders with ligatures and kerning off: with ligatures on, one
+and then into the PDF. cvcite renders with ligatures and kerning off: with ligatures on, one
 extractor lost every word containing "ff", "ffi" or "ffl", and with kerning on, another read a
 bold "Airflow" as two words. It also ships the one Typst package RenderCV's template imports, so
 a render needs no network.
@@ -140,4 +141,4 @@ uv venv --python 3.13 && uv pip install -e ".[test]"
 ## Licence
 
 MIT. RenderCV is MIT-licensed; the vendored Typst package `fontawesome` 0.6.0 is MIT-licensed,
-with its licence in `src/cv_builder/vendor/`.
+with its licence in `src/cvcite/vendor/`.

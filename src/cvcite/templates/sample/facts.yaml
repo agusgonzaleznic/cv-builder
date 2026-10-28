@@ -1,0 +1,60 @@
+# The fact ledger: every fact the CV may state, with where it comes from. A fact goes here first,
+# then into cv.yaml, never the other way round. `cvcite check` fails any number in a bullet
+# that no fact holds, and any number that only a private fact holds.
+#
+# visibility: public    fine on the CV and on public profiles
+#             cv-only   fine on the CV you send, kept off public profiles
+#             private   never on the CV or any profile; kept so the agent knows not to use it
+#
+# Made up, like the sample CV.
+facts:
+  - id: kestrel-role
+    text: "Kestrel Freight, Data Engineering Manager since March 2022: lead 7 data engineers in two teams, report to the VP of Data, own the data platform budget of GBP 400k a year."
+    source: "Offer letter; the 2025 org chart; the 2025 budget sheet"
+    confirmed: 2026-01-15
+    visibility: cv-only
+  - id: kestrel-airflow
+    text: "Moved 120 nightly batch jobs from cron scripts to Airflow over two quarters; failed overnight runs went from 15 a month to 2, comparing the six months before and after."
+    source: "Incident log export, 2023"
+    confirmed: 2026-01-15
+    visibility: public
+  - id: kestrel-contracts
+    text: "Introduced data contracts between the shipment tracking and billing teams; a breaking schema change fails in CI."
+    source: "Design document; the CI configuration"
+    confirmed: 2026-01-15
+    visibility: public
+  - id: kestrel-hiring
+    text: "Hired 3 engineers; set up the data platform on-call rotation and its runbooks."
+    source: "Hiring records; the runbook repository"
+    confirmed: 2026-01-15
+    visibility: public
+  - id: brightfield-pipeline
+    text: "Built the Kafka and Spark Structured Streaming event pipeline behind the clinic scheduling dashboards, processing 3M events a day."
+    source: "Pipeline dashboard, 2021"
+    confirmed: 2026-01-15
+    visibility: public
+  - id: brightfield-dbt
+    text: "Rewrote the patient reporting models in dbt with a test on every model."
+    source: "The dbt project history"
+    confirmed: 2026-01-15
+    visibility: public
+  - id: brightfield-cost
+    text: "Cut the monthly warehouse bill from GBP 18k to GBP 11k over six months by partitioning the largest tables and removing unused extracts."
+    source: "Cloud billing export, 2020 and 2021"
+    confirmed: 2026-01-15
+    visibility: cv-only
+  - id: harbourline
+    text: "Data Analyst at Harbourline Retail, Manchester, 2015 to 2018: sales and stock reporting for 40 stores in SQL and Python."
+    source: "Employment reference letter"
+    confirmed: 2026-01-15
+    visibility: public
+  - id: cert-gcp
+    text: "Google Cloud Professional Data Engineer, passed in 2021."
+    source: "Certificate"
+    confirmed: 2026-01-15
+    visibility: public
+  - id: kestrel-invoicing
+    text: "The Kestrel data platform carries GBP 90M of invoicing a year."
+    source: "Internal finance review, 2025"
+    confirmed: 2026-01-15
+    visibility: private

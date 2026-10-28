@@ -1,11 +1,11 @@
 #!/usr/bin/env bash
-# The workflows `cv-builder init` writes live under src/, where Dependabot does not look. Fail when
+# The workflows `cvcite init` writes live under src/, where Dependabot does not look. Fail when
 # one of them pins an action differently from this repository's own workflows or action.yml, so
 # a Dependabot update here cannot leave the templates behind.
 #
 #   .github/scripts/check-template-pins.sh [templates-dir]
 set -euo pipefail
-templates=${1:-src/cv_builder/templates/repo/github/workflows}
+templates=${1:-src/cvcite/templates/repo/github/workflows}
 extract() { grep -rhoE 'uses: [^ @#]+@[0-9a-f]{40} # v[^ ]+' "$@" | sed 's/^uses: //' | sort -u; }
 ours=$(extract .github/workflows action.yml)
 theirs=$(extract "$templates")

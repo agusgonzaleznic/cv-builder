@@ -539,7 +539,7 @@ packaging==26.3 \
 pdfminer-six==20260107 \
     --hash=sha256:366585ba97e80dffa8f00cebe303d2f381884d8637af4ce422f1df3ef38111a9 \
     --hash=sha256:96bfd431e3577a55a0efd25676968ca4ce8fd5b53f14565f85716ff363889602
-    # via cv-builder (pyproject.toml)
+    # via cvcite (pyproject.toml)
 phonenumbers==9.0.42 \
     --hash=sha256:321c92d9734bfb4adc64575f940da26463f09fc79ac692b43a35f9306e4ecc7d \
     --hash=sha256:83ddc20edea93814f5bb2ee8d365b3ef64fa274c8a4f6d06bd8b2c7996030564
@@ -704,11 +704,11 @@ pygments==2.21.0 \
 pypdf==6.21.3 \
     --hash=sha256:11e1ca6d6cc8ca322558a3a974078d5ebc0f3a2104b8e673eee25621ee97abd8 \
     --hash=sha256:c8ca4d9a360dbd5d4b9bb7a8389e2a9ae6a106bee722b496f918040ba2daa17e
-    # via cv-builder (pyproject.toml)
+    # via cvcite (pyproject.toml)
 rendercv==2.8 \
     --hash=sha256:38c8192931f1bb11958a9935a7b2698460829d4cf37543629be715a520376024 \
     --hash=sha256:e51b2e96654f8eeac612c9f2ba08c703e1a59e4d3433140a3d13fdbdb7192f73
-    # via cv-builder (pyproject.toml)
+    # via cvcite (pyproject.toml)
 rendercv-fonts==0.5.1 \
     --hash=sha256:e82ee2cc9f6078c8aa05ea8bb5ab38b369e3487f638c44e4f329092f433dd460 \
     --hash=sha256:f7ea8f33bb1338d9ce41c036066ffb8a482cc182c0f36e183d73a42e2da91ee5
@@ -721,7 +721,7 @@ ruamel-yaml==0.19.1 \
     --hash=sha256:27592957fedf6e0b62f281e96effd28043345e0e66001f97683aa9a40c667c93 \
     --hash=sha256:53eb66cd27849eff968ebf8f0bf61f46cdac2da1d1f3576dd4ccee9b25c31993
     # via
-    #   cv-builder (pyproject.toml)
+    #   cvcite (pyproject.toml)
     #   rendercv
 shellingham==1.5.4 \
     --hash=sha256:7ecfff8f2fd72616f7481040475a65b2bf8af90a56c89140852d1120324e8686 \

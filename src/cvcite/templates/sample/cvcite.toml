@@ -1,0 +1,25 @@
+# cvcite settings for this CV. Every key is optional; these are the defaults unless noted.
+
+[build]
+master = "cv.yaml"
+variants = "variants"
+facts = "facts.yaml"
+build_dir = "build"
+# The file name recruiters see. It is the same in every variant's folder on purpose: a name like
+# "CV_manager.pdf" would tell them you keep targeted versions.
+send_name = "Robin_Example_CV.pdf"
+# Every variant must render to exactly this many pages (the default is 2).
+pages = 1
+skills_section = "Skills"
+
+[gate]
+# Text extractors that must agree. Empty means every one installed, at least two:
+# pypdf and pdfminer come with cvcite; ghostscript and pdftotext are used when installed.
+extractors = []
+# Characters that fail the build, as code points: em dash, horizontal bar, two-em dash.
+banned_characters = ["U+2014", "U+2015", "U+2E3A"]
+min_contrast = 4.5
+
+[privacy]
+# "international" or "us": leaves out photo, date of birth, nationality and marital status.
+market = "international"
