@@ -1,0 +1,13 @@
+{
+  "name": "cv-builder",
+  "version": "0.1.0",
+  "description": "Build a truthful, ATS-safe CV from one master YAML file: ingest an existing CV, confirm every fact, tailor it for a role, gate every PDF, and check LinkedIn, your site and GitHub for consistency.",
+  "author": {
+    "name": "Agustin Gonzalez Nicolini",
+    "url": "https://github.com/agusgonzaleznic"
+  },
+  "homepage": "https://github.com/agusgonzaleznic/cv-builder",
+  "repository": "https://github.com/agusgonzaleznic/cv-builder",
+  "license": "MIT",
+  "keywords": ["cv", "resume", "ats", "linkedin", "rendercv", "career"]
+}

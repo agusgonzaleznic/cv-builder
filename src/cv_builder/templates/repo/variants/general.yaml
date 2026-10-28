@@ -1,0 +1,19 @@
+# An overlay positions the master for one kind of role. It may change the headline, the summary,
+# the bolded words and the skills line, and drop bullets to fit the page budget. Never a fact.
+# Copy this file once per kind of role you apply for; the file name names the build folder.
+_meta:
+  name: general
+  description: The default positioning
+
+# Every bullet that contains one of these strings is dropped from this variant.
+_omit: []
+
+# cv:
+#   headline: A different headline for this kind of role
+#   sections:
+#     summary:
+#       - "A summary written for this kind of role."
+
+# settings:
+#   bold_keywords:
+#     - "a phrase to bold"

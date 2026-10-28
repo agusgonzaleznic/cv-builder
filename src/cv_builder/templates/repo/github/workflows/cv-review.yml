@@ -1,0 +1,103 @@
+# An AI claim review of every pull request that changes the CV: Claude tries to refute each
+# changed claim against the fact ledger and the truth rules in AGENTS.md, and posts what it could
+# refute as a comment. It does nothing until you add an ANTHROPIC_API_KEY repository secret, and
+# each run is billed to that key. Pull requests from forks are skipped: they get no secrets.
+#
+# The reviewer's instructions live in this file, not in a remote plugin, so the review that runs
+# is the one you committed. Actions are pinned to full commit SHAs, with the release in a comment.
+
+name: CV review
+
+on:
+  pull_request:
+    paths:
+      - cv.yaml
+      - facts.yaml
+      - "variants/**"
+
+permissions:
+  contents: read
+  pull-requests: write
+
+concurrency:
+  group: cv-review-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  review:
+    name: CV claim review
+    if: github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - name: Skip without an API key
+        id: key
+        env:
+          KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+        run: |
+          if [ -n "$KEY" ]; then
+            echo "present=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "::notice::No ANTHROPIC_API_KEY secret, so no AI review. Add one to turn it on."
+          fi
+
+      - name: Check out the repository
+        if: steps.key.outputs.present == 'true'
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Review the changed claims
+        id: review
+        if: steps.key.outputs.present == 'true'
+        uses: anthropics/claude-code-action@d70510b174a1244958df0b03166a54912811f3e6 # v1.0.264
+        with:
+          anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
+          github_token: ${{ github.token }}
+          # Read-only tools, and no reading outside the repository: the API key is in the
+          # process environment, and the final message is posted as it is.
+          claude_args: >-
+            --max-turns 40 --allowedTools "Read,Glob,Grep,Bash(git diff:*)"
+            --disallowedTools "Read(//proc/**),Read(//sys/**),Read(//etc/**),Read(//home/**),Read(//root/**)"
+          prompt: |
+            You review the CV changes in this pull request as a sceptical hiring manager would
+            before an interview. You read; you never edit a file.
+
+            Read AGENTS.md (the truth rules are the standard), facts.yaml (the only evidence),
+            cv.yaml and every file in variants/. See what changed with:
+            git diff origin/${{ github.base_ref }}...HEAD -- cv.yaml facts.yaml variants/
+
+            For every changed or added bullet, summary line, headline and skills item, try to
+            refute it:
+            1. a number, date, employer, title, tool or certification that no fact holds, or
+               that a fact holds differently;
+            2. a figure from a fact with visibility private;
+            3. inflated ownership ("built", "designed", "owned" where the fact says led or
+               contributed);
+            4. an outcome metric without a baseline, a timeframe or the person's part;
+            5. a delivery metric presented in the wrong direction;
+            6. an unfalsifiable claim (zero incidents, perfect uptime, best);
+            7. a certification, audit or launch claimed before it is done;
+            8. an overlay stating a fact the master lacks, or a skill the master's line lacks.
+
+            Report only what you can refute with the files, one finding per bullet: the file and
+            line, the claim in quotes, the evidence (the fact id, or "no fact holds this") and
+            the smallest honest fix. If you find nothing, say "No findings." Your final message
+            is posted on the pull request exactly as you write it: no preamble.
+
+      - name: Post the findings on the pull request
+        if: steps.key.outputs.present == 'true' && steps.review.outputs.execution_file != ''
+        env:
+          GH_TOKEN: ${{ github.token }}
+          EXECUTION: ${{ steps.review.outputs.execution_file }}
+          PR: ${{ github.event.pull_request.number }}
+        run: |
+          set -euo pipefail
+          jq -r '[.[] | select(.type == "result")] | last | .result // empty' "$EXECUTION" > review.md
+          if [ ! -s review.md ]; then
+            echo "::warning::The review produced no text; see the step above."
+            exit 0
+          fi
+          { echo "### CV claim review"; echo; cat review.md; } > comment.md
+          gh pr comment "$PR" --repo "$GITHUB_REPOSITORY" --body-file comment.md

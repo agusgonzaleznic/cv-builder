@@ -1,0 +1,36 @@
+# Checks, renders and gates every variant on each pull request and each push to main. The job
+# name, "CV build and gate", is the status check to wait for before merging.
+#
+# Nothing is uploaded: the PDFs carry contact details, and artifacts outlive the run. Publishing
+# is release.yml's job, by hand. Actions are pinned to full commit SHAs, with the release in a
+# comment; Dependabot proposes updates.
+
+name: CV
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: cv-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    name: CV build and gate
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - name: Check out the repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Check, render and gate every variant
+        uses: {{ACTION_REF}}
+        with:
+          package: "true"

@@ -1,0 +1,69 @@
+# Lints the workflows and proves every action pin, on every pull request and push to main. The
+# workflows that `cv-builder init` writes are linted too, with their placeholder filled in, since
+# they run in every user's repository.
+
+name: Lint
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  actionlint:
+    name: actionlint
+    runs-on: ubuntu-24.04
+    env:
+      ACTIONLINT_VERSION: 1.7.12
+      # sha256 of actionlint_1.7.12_linux_amd64.tar.gz, from the release's checksums file
+      ACTIONLINT_SHA256: 8aca8db96f1b94770f1b0d72b6dddcb1ebb8123cb3712530b08cc387b349a3d8
+    steps:
+      - name: Check out the repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Install actionlint
+        run: |
+          tarball="actionlint_${ACTIONLINT_VERSION}_linux_amd64.tar.gz"
+          curl -fsSL -o "$RUNNER_TEMP/$tarball" \
+            "https://github.com/rhysd/actionlint/releases/download/v${ACTIONLINT_VERSION}/${tarball}"
+          echo "${ACTIONLINT_SHA256}  ${RUNNER_TEMP}/${tarball}" | sha256sum --check --strict
+          tar -xzf "$RUNNER_TEMP/$tarball" -C "$RUNNER_TEMP" actionlint
+
+      - name: Lint this repository's workflows and the ones init writes
+        run: |
+          set -euo pipefail
+          rendered="$RUNNER_TEMP/rendered/.github/workflows"
+          mkdir -p "$rendered"
+          for f in src/cv_builder/templates/repo/github/workflows/*.yml; do
+            sed 's|{{ACTION_REF}}|agusgonzaleznic/cv-builder@0000000000000000000000000000000000000000 # v0.0.0|' \
+              "$f" > "$rendered/$(basename "$f")"
+          done
+          "$RUNNER_TEMP/actionlint" -color .github/workflows/*.yml "$rendered"/*.yml
+
+  pins:
+    name: Verify action pins
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Check out the repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Check every action is pinned to the commit its version comment names
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          .github/scripts/verify-action-pins.sh .github/workflows action.yml \
+            src/cv_builder/templates/repo/github/workflows
+
+      - name: Check the workflows init writes pin what this repository pins
+        run: .github/scripts/check-template-pins.sh
