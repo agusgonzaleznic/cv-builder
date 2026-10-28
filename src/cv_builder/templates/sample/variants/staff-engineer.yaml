@@ -1,0 +1,23 @@
+# Overlay for senior and staff data engineer roles: hands-on depth first.
+_meta:
+  name: staff-engineer
+  description: Staff and senior data engineer roles
+
+_omit:
+  - "Hired 3 engineers"
+
+cv:
+  headline: Staff Data Engineer
+  sections:
+    summary:
+      - "Data engineer who builds streaming and batch pipelines that analysts trust, now leading a team of 7 at a freight company. Moved 120 nightly jobs to Airflow and cut a warehouse bill from GBP 18k to GBP 11k a month."
+    Skills:
+      - label: Languages
+        details: Python, SQL
+      - label: Data
+        details: Airflow, dbt, Kafka, Spark Structured Streaming
+
+settings:
+  bold_keywords:
+    - "Spark Structured Streaming"
+    - "Airflow"

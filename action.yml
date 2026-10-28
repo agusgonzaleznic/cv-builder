@@ -1,0 +1,84 @@
+# cv-builder as a GitHub Action: checks, renders and gates every CV variant of the repository it
+# runs in, and can package the build for a release. Use it from a CV repository made by
+# `cv-builder init`, pinned to a full commit SHA with the release in a comment.
+#
+# It runs cv-builder from this action's own checkout, so the code that runs is exactly the
+# release the workflow pins. Every Python package comes from a lock with every hash pinned, and
+# cv-builder runs from its source folder, so no Python package is built or fetched unpinned.
+# Python itself and Ghostscript come from setup-python and apt, signed but not pinned here.
+
+name: cv-builder
+description: Check, render and gate every CV variant, the way applicant tracking systems read it
+author: Agustin Gonzalez Nicolini
+branding:
+  icon: file-text
+  color: blue
+
+inputs:
+  working-directory:
+    description: The CV repository's folder, relative to the workspace
+    default: "."
+  package:
+    description: Also zip the build with checksums into .tmp/release, as a release needs
+    default: "false"
+
+runs:
+  using: composite
+  steps:
+    - name: Set up Python
+      uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+      with:
+        python-version: "3.13"
+
+    # The gate's third text extractor. Ubuntu's default mirror order sometimes stalls apt for
+    # minutes on hosted runners, so the official archive goes first.
+    - name: Install Ghostscript
+      if: runner.os == 'Linux'
+      shell: bash
+      run: |
+        set -euo pipefail
+        mirrors=/etc/apt/apt-mirrors.txt
+        if [ -f "$mirrors" ]; then
+          printf '%s\tpriority:%s\n' \
+            https://archive.ubuntu.com/ubuntu/ 1 \
+            https://security.ubuntu.com/ubuntu/ 2 \
+            http://azure.archive.ubuntu.com/ubuntu/ 3 | sudo tee "$mirrors" >/dev/null
+        fi
+        ubuntu=/etc/apt/sources.list.d/ubuntu.sources
+        if [ -f "$ubuntu" ]; then
+          sudo timeout 300 apt-get update -o Dir::Etc::sourcelist="$ubuntu" \
+            -o Dir::Etc::sourceparts=- -o APT::Get::List-Cleanup=0
+        else
+          sudo timeout 300 apt-get update
+        fi
+        sudo timeout 300 apt-get install -y --no-install-recommends ghostscript
+        echo "Ghostscript $(gs --version)"
+
+    - name: Install cv-builder
+      shell: bash
+      env:
+        ACTION_PATH: ${{ github.action_path }}
+      run: |
+        set -euo pipefail
+        venv="$RUNNER_TEMP/cv-builder-venv"
+        python -m venv "$venv"
+        "$venv/bin/pip" install --quiet --disable-pip-version-check --require-hashes --no-deps \
+          -r "$ACTION_PATH/requirements/action.txt"
+        launcher="$RUNNER_TEMP/cv-builder-bin/cv-builder"
+        mkdir -p "$(dirname "$launcher")"
+        printf '#!/bin/sh\nPYTHONPATH="%s/src" exec "%s/bin/python" -m cv_builder "$@"\n' \
+          "$ACTION_PATH" "$venv" > "$launcher"
+        chmod +x "$launcher"
+        echo "$(dirname "$launcher")" >> "$GITHUB_PATH"
+        "$launcher" --version
+
+    - name: Check, render and gate
+      shell: bash
+      working-directory: ${{ inputs.working-directory }}
+      run: cv-builder build
+
+    - name: Package the build
+      if: inputs.package == 'true'
+      shell: bash
+      working-directory: ${{ inputs.working-directory }}
+      run: cv-builder package

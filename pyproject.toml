@@ -1,0 +1,45 @@
+[build-system]
+requires = ["hatchling>=1.27"]
+build-backend = "hatchling.build"
+
+[project]
+name = "cv-builder"
+dynamic = ["version"]
+description = "Build a CV from one master YAML file and an overlay per target role, and gate every PDF the way applicant tracking systems read it."
+readme = "README.md"
+license = "MIT"
+license-files = ["LICENSE"]
+requires-python = ">=3.12"
+authors = [{ name = "Agustin Gonzalez Nicolini" }]
+keywords = ["cv", "resume", "ats", "rendercv", "typst", "claude-code"]
+classifiers = [
+  "Environment :: Console",
+  "Intended Audience :: End Users/Desktop",
+  "Programming Language :: Python :: 3",
+  "Topic :: Office/Business",
+]
+dependencies = [
+  "rendercv[full]==2.8",
+  "pypdf>=5.0",
+  "pdfminer.six>=20240706",
+  "ruamel.yaml>=0.18",
+]
+
+[project.optional-dependencies]
+test = ["pytest>=8.0"]
+
+[project.scripts]
+cv-builder = "cv_builder.cli:main"
+
+[project.urls]
+Source = "https://github.com/agusgonzaleznic/cv-builder"
+
+[tool.hatch.version]
+path = "src/cv_builder/__init__.py"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/cv_builder"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+markers = ["real_action_ref: runs init's real release lookup (mocked network)"]

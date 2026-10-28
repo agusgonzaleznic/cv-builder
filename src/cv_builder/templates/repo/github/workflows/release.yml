@@ -1,0 +1,77 @@
+# Builds every variant exactly as CI does and publishes build/ as a GitHub release, so the PDFs
+# can be downloaded from any device. By hand only: Actions, "Release", "Run workflow", or
+# `gh workflow run release.yml`.
+#
+# A release is exactly as visible as the repository, and the PDFs carry contact details, so the
+# job refuses to publish unless it runs on main in a private repository.
+
+name: Release
+
+on:
+  workflow_dispatch:
+
+permissions: {}
+
+# Two releases at once would race for the "Latest" marker. Queue them instead.
+concurrency:
+  group: release
+  cancel-in-progress: false
+
+jobs:
+  release:
+    name: Build, gate and publish
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    permissions:
+      contents: write
+    steps:
+      # First, so a refusal costs seconds, not a build. Anything but a clear yes stops it, an API
+      # error included.
+      - name: Refuse unless on main in a private repository
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          if [ "$GITHUB_REF" != "refs/heads/main" ]; then
+            echo "::error::Run this workflow on main, not $GITHUB_REF: the newest release is the one to download."
+            exit 1
+          fi
+          private=$(gh api "repos/$GITHUB_REPOSITORY" --jq .private)
+          if [ "$private" != "true" ]; then
+            echo "::error::$GITHUB_REPOSITORY is not private (private=$private). The PDFs carry contact details; nothing was published."
+            exit 1
+          fi
+
+      - name: Check out the repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Check, render, gate and package
+        uses: {{ACTION_REF}}
+        with:
+          package: "true"
+
+      # The tag carries the date and the run number, so two runs never collide. gh uploads to a
+      # draft first and deletes it if anything fails; only a cancelled run can leave a draft.
+      - name: Publish the release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        run: |
+          set -euo pipefail
+          today=$(date -u +%Y-%m-%d)
+          short=${GITHUB_SHA::7}
+          tag="cv-$today-run$GITHUB_RUN_NUMBER"
+          {
+            echo "Every variant, built and gated from commit $short on $today."
+            echo
+            echo "Download \`build.zip\`, unzip it, and send \`build/<variant>/<file>.pdf\` without renaming it."
+            echo
+            cat .tmp/release/MANIFEST.md
+            echo
+            echo "To verify the files: \`shasum -a 256 -c SHA256SUMS\` in the folder that holds \`build/\`."
+          } > .tmp/release/NOTES.md
+          gh release create "$tag" .tmp/release/build.zip .tmp/release/SHA256SUMS \
+            --target "$GITHUB_SHA" --title "CV build $today ($short)" \
+            --notes-file .tmp/release/NOTES.md --latest

@@ -1,0 +1,15 @@
+{
+  "name": "cv-builder",
+  "description": "cv-builder: build a truthful, ATS-safe CV from one master YAML file, with skills that interview you, tailor it per role and check your public profiles against it.",
+  "owner": {
+    "name": "Agustin Gonzalez Nicolini",
+    "url": "https://github.com/agusgonzaleznic"
+  },
+  "plugins": [
+    {
+      "name": "cv-builder",
+      "source": "./",
+      "description": "Build a truthful, ATS-safe CV from one master YAML file, tailor it per role, and keep LinkedIn, your site and GitHub consistent with it."
+    }
+  ]
+}

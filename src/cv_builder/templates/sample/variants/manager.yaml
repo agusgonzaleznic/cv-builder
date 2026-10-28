@@ -1,0 +1,28 @@
+# Overlay for data engineering manager roles. An overlay changes positioning only: the headline,
+# the summary, the bolded words, the skills line and which bullets to drop. Never a fact.
+_meta:
+  name: manager
+  description: Data engineering manager and head of data platform roles
+
+_omit:
+  - "Rewrote the patient reporting models"
+
+cv:
+  headline: Data Engineering Manager
+  sections:
+    summary:
+      - "Data engineering manager who turns fragile batch pipelines into a platform analysts trust. Leads a team of 7 data engineers at a freight company, owns its data platform budget, and hires and runs on-call for the platform."
+    # This variant drops the dbt bullet, so dbt leaves its skills line too: every skill listed
+    # must be backed by a bullet the variant keeps.
+    Skills:
+      - label: Languages
+        details: Python, SQL
+      - label: Data
+        details: Airflow, Kafka, Spark Structured Streaming
+      - label: Practices
+        details: Data contracts, on-call, CI
+
+settings:
+  bold_keywords:
+    - "data contracts"
+    - "on-call rotation"
