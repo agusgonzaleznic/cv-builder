@@ -1,7 +1,7 @@
 # Tests on every pull request and every push to main, the action itself run end to end on the
 # made-up sample, and the package built as a release builds it. Read-only token; nothing is
-# published. Actions are pinned to full commit SHAs with the release in a comment; lint.yml
-# proves each pin.
+# published. The tests and the build run in the shared reusable workflows; everything is pinned
+# to full commit SHAs with the release in a comment, and lint.yml proves each pin.
 
 name: CI
 
@@ -18,41 +18,22 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  test:
-    name: Tests (Python ${{ matrix.python }})
-    runs-on: ubuntu-24.04
-    timeout-minutes: 15
-    strategy:
-      fail-fast: false
-      matrix:
-        python: ["3.12", "3.13"]
-    steps:
-      - name: Check out the repository
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          persist-credentials: false
+  # The job names here are half of the main ruleset's required checks ("Tests / Python 3.12",
+  # "Package build / Build sdist and wheel"; "Action on the sample" whole): renaming one is a
+  # breaking change.
+  tests:
+    name: Tests
+    uses: agusgonzaleznic/github-reusable-workflows/.github/workflows/python-tests.yml@bd069d1adaece9f8420bf7d4bed5a0cf9288363b # v1.5.0
+    with:
+      runs-on: ubuntu-24.04
+      requirements: requirements/action.txt requirements/test.txt
+      # Ghostscript is the gate's third extractor.
+      apt-packages: ghostscript
+      pythonpath: src
 
-      - name: Set up Python
-        uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
-        with:
-          python-version: ${{ matrix.python }}
-
-      - name: Install Ghostscript, the gate's third extractor
-        run: |
-          sudo timeout 300 apt-get update
-          sudo timeout 300 apt-get install -y --no-install-recommends ghostscript
-
-      - name: Install the pinned dependencies
-        run: |
-          python -m venv .venv
-          .venv/bin/pip install --quiet --require-hashes --no-deps --only-binary :all: \
-            -r requirements/action.txt -r requirements/test.txt
-
-      - name: Run the tests
-        env:
-          PYTHONPATH: src
-        run: .venv/bin/python -m pytest -q
-
+  # Stays here, the one exception to the shared workflows: it runs this repository's own action
+  # (uses: ./) with cvcite's inputs and checks cvcite's release files, so a shared copy would be
+  # cvcite-only, and every new action input would cost a shared release and a pin bump.
   action:
     name: Action on the sample
     runs-on: ubuntu-24.04
@@ -82,6 +63,6 @@ jobs:
     name: Package build
     # The build publish.yml runs, on every change, so a stale requirements/build.txt or a broken
     # build fails a pull request instead of a release (a v* tag can never move).
-    uses: agusgonzaleznic/github-reusable-workflows/.github/workflows/python-build.yml@869d745963f183696bbe2ceed330891c195916ce # v1.4.0
+    uses: agusgonzaleznic/github-reusable-workflows/.github/workflows/python-build.yml@bd069d1adaece9f8420bf7d4bed5a0cf9288363b # v1.5.0
     with:
       build-constraints: requirements/build.txt
