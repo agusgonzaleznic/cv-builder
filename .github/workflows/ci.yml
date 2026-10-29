@@ -1,6 +1,7 @@
-# Tests on every pull request and every push to main, and the action itself run end to end on
-# the made-up sample. Read-only token; nothing is uploaded. Actions are pinned to full commit
-# SHAs with the release in a comment; lint.yml proves each pin.
+# Tests on every pull request and every push to main, the action itself run end to end on the
+# made-up sample, and the package built as a release builds it. Read-only token; nothing is
+# published. Actions are pinned to full commit SHAs with the release in a comment; lint.yml
+# proves each pin.
 
 name: CI
 
@@ -76,3 +77,11 @@ jobs:
           set -euo pipefail
           unzip -l .tmp/release/build.zip
           (cd .tmp/release && unzip -q build.zip && sha256sum -c SHA256SUMS)
+
+  package:
+    name: Package build
+    # The build publish.yml runs, on every change, so a stale requirements/build.txt or a broken
+    # build fails a pull request instead of a release (a v* tag can never move).
+    uses: agusgonzaleznic/github-reusable-workflows/.github/workflows/python-build.yml@869d745963f183696bbe2ceed330891c195916ce # v1.4.0
+    with:
+      build-constraints: requirements/build.txt

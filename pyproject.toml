@@ -33,6 +33,8 @@ cvcite = "cvcite.cli:main"
 
 [project.urls]
 Source = "https://github.com/agusgonzaleznic/cvcite"
+Issues = "https://github.com/agusgonzaleznic/cvcite/issues"
+Changelog = "https://github.com/agusgonzaleznic/cvcite/releases"
 
 [tool.hatch.version]
 path = "src/cvcite/__init__.py"

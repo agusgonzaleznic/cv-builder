@@ -9,10 +9,10 @@ folder holds the template (ligatures and kerning off) and the icon package (vend
 `get_package_path` before the first compile is all it takes: the compiler looks it up when it is
 created.
 
-RenderCV's command line also checks PyPI for a newer release on every run, in a background thread,
-with TLS verification turned off, and caches the answer in the home directory. cvcite pins the
-version anyway, so the check is replaced with nothing. With both in place a render makes no
-network request and writes nothing outside the build.
+RenderCV's command line also checks PyPI for a newer release whenever its cached answer is missing
+or a day old, in a background thread with TLS verification turned off, and caches the answer in
+the home directory. cvcite pins the version anyway, so the check is replaced with nothing. With
+both in place a render makes no network request and writes nothing outside the build.
 """
 
 from __future__ import annotations

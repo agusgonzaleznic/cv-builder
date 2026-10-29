@@ -1,0 +1,53 @@
+# Publishes cvcite to PyPI when a release is published, through Trusted Publishing: PyPI trusts
+# this file (publish.yml) running in the GitHub environment pypi, which accepts only v* tags, so
+# the workflow uses no PyPI token.
+#
+# The build runs in the shared reusable workflow, against the hash-locked build backend in
+# requirements/build.txt, and fails when the tag differs from the package version. The upload
+# has to stay in this file: PyPI only trusts a job defined in the workflow file registered with
+# it, never one from another repository's reusable workflow (pypi/warehouse#11096). Actions are
+# pinned to full commit SHAs, with the release in a comment.
+
+name: Publish
+
+on:
+  release:
+    types: [published]
+
+permissions: {}
+
+# Two releases at once would race to upload. Queue them instead.
+concurrency:
+  group: publish
+  cancel-in-progress: false
+
+jobs:
+  build:
+    name: Build
+    uses: agusgonzaleznic/github-reusable-workflows/.github/workflows/python-build.yml@869d745963f183696bbe2ceed330891c195916ce # v1.4.0
+    permissions:
+      contents: read
+    with:
+      build-constraints: requirements/build.txt
+
+  publish:
+    name: Publish to PyPI
+    needs: build
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    environment:
+      name: pypi
+      url: https://pypi.org/project/cvcite/${{ needs.build.outputs.version }}/
+    permissions:
+      id-token: write
+    steps:
+      - name: Download the built files
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: python-dist
+          path: dist/
+
+      # A short-lived token from Trusted Publishing, and signed attestations for both files;
+      # there is no password input on purpose.
+      - name: Upload to PyPI
+        uses: pypa/gh-action-pypi-publish@7245906fb61fa33a13554f9d5fb856fe61758086 # v1.14.3

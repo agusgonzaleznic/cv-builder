@@ -36,7 +36,7 @@ command is missing, the skills ask you before installing it.
 - **Runs:** the `cvcite` command line on your machine (`check`, `build`, `ingest`, `compare`,
   `init`, `doctor`, `package`), in the CV repository you work in; `cvcite init` asks github.com
   which commit the release tag points to. Only after asking you: `uv tool install` of the
-  pinned cvcite release, `git init`, `git add` and `git commit` in your CV repository,
+  pinned cvcite release from PyPI, `git init`, `git add` and `git commit` in your CV repository,
   `gh repo create --private --push` for it (which sends the repository to your GitHub account),
   and `gh workflow run release.yml` to publish a private release of your PDFs.
 - **Fetches:** only pages you name (a job posting, your personal website) and your public GitHub

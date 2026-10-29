@@ -32,7 +32,7 @@ You need Python 3.12 or newer (RenderCV 2.8 needs it). [uv](https://docs.astral.
 Ghostscript is optional (a third extractor for the gate).
 
 ```sh
-uv tool install git+https://github.com/agusgonzaleznic/cvcite
+uv tool install cvcite          # or: pipx install cvcite
 cvcite init my-cv --sample      # try it with the made-up sample; drop --sample to start blank
 cd my-cv
 cvcite build                    # check, render and gate every variant
@@ -56,7 +56,7 @@ Or in two steps: `/plugin marketplace add agusgonzaleznic/cvcite`, then
 `/plugin install cvcite@cvcite`.
 
 Then ask in your own words, for example "start my CV from inputs/old-cv.pdf" or "tailor my CV
-for this posting: <link>". The skills:
+for this posting: `<link>`". The skills:
 
 | Skill | What it does |
 |---|---|
@@ -149,6 +149,12 @@ so a render makes no network request and writes nothing outside the build.
 uv venv --python 3.13 && uv pip install -e ".[test]"
 .venv/bin/python -m pytest
 ```
+
+A release is a GitHub release `vX.Y.Z` of a `main` commit whose version matches
+`src/cvcite/__init__.py` and `plugin/.claude-plugin/plugin.json`. Publishing it runs
+`publish.yml`: the shared `python-build.yml` workflow builds the package against the hash-locked
+build backend in `requirements/build.txt`, and the publish job uploads it to PyPI through
+Trusted Publishing, with no PyPI token. A test checks that the three version strings agree.
 
 ## Licence
 
