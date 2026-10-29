@@ -23,7 +23,7 @@ jobs:
   # breaking change.
   tests:
     name: Tests
-    uses: agusgonzaleznic/github-reusable-workflows/.github/workflows/python-tests.yml@bd069d1adaece9f8420bf7d4bed5a0cf9288363b # v1.5.0
+    uses: agusgonzaleznic/github-reusable-workflows/.github/workflows/python-tests.yml@ba4959ca8dee5e04d307aa48fb170de6f464ea2b # v1.5.0
     with:
       runs-on: ubuntu-24.04
       requirements: requirements/action.txt requirements/test.txt
@@ -63,6 +63,6 @@ jobs:
     name: Package build
     # The build publish.yml runs, on every change, so a stale requirements/build.txt or a broken
     # build fails a pull request instead of a release (a v* tag can never move).
-    uses: agusgonzaleznic/github-reusable-workflows/.github/workflows/python-build.yml@bd069d1adaece9f8420bf7d4bed5a0cf9288363b # v1.5.0
+    uses: agusgonzaleznic/github-reusable-workflows/.github/workflows/python-build.yml@ba4959ca8dee5e04d307aa48fb170de6f464ea2b # v1.5.0
     with:
       build-constraints: requirements/build.txt

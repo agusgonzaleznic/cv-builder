@@ -22,7 +22,7 @@ jobs:
   # action pins"): renaming it is a breaking change.
   lint:
     name: Lint
-    uses: agusgonzaleznic/github-reusable-workflows/.github/workflows/actions-lint.yml@bd069d1adaece9f8420bf7d4bed5a0cf9288363b # v1.5.0
+    uses: agusgonzaleznic/github-reusable-workflows/.github/workflows/actions-lint.yml@ba4959ca8dee5e04d307aa48fb170de6f464ea2b # v1.5.0
     with:
       runs-on: ubuntu-24.04
       prepare-command: .github/scripts/render-templates.sh .tmp/rendered/.github/workflows

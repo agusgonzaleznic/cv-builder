@@ -24,7 +24,7 @@ concurrency:
 jobs:
   build:
     name: Build
-    uses: agusgonzaleznic/github-reusable-workflows/.github/workflows/python-build.yml@bd069d1adaece9f8420bf7d4bed5a0cf9288363b # v1.5.0
+    uses: agusgonzaleznic/github-reusable-workflows/.github/workflows/python-build.yml@ba4959ca8dee5e04d307aa48fb170de6f464ea2b # v1.5.0
     permissions:
       contents: read
     with:
