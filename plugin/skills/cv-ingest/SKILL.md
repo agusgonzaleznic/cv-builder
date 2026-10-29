@@ -14,10 +14,9 @@ confirmed, and never fill a gap with an estimate.
 1. Find the CV repository: a folder with `cvcite.toml` and `AGENTS.md`. If there is none, ask
    whether to create one, and where. Create it with `cvcite init <folder>`, then offer the
    private GitHub repository commands it prints (never make it public).
-2. Run `cvcite doctor`. If the command is missing, ask before installing it, pinned to the
-   release this plugin belongs to:
-   `uv tool install git+https://github.com/agusgonzaleznic/cvcite@v0.2.0` (or `pipx install`
-   with the same URL). Never install a package called cvcite from anywhere else.
+2. Run `cvcite doctor`. If the command is missing, ask before installing it from PyPI, pinned
+   to the release this plugin belongs to: `uv tool install cvcite==0.2.1` (or
+   `pipx install cvcite==0.2.1`). Never install it from another index, a fork or a copy.
 3. Read the repository's `AGENTS.md`. Its truth rules bind everything below.
 4. Ask questions with the AskUserQuestion tool when you have it: one decision per question, two
    to four options, your recommendation first and marked "(Recommended)". Without that tool, ask

@@ -1,6 +1,6 @@
 {
   "name": "cvcite",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "description": "Build a truthful, ATS-safe CV from one master YAML file: ingest an existing CV, confirm every fact, tailor it for a role, gate every PDF, and check LinkedIn, your site and GitHub for consistency.",
   "author": {
     "name": "Agustin Gonzalez Nicolini",
